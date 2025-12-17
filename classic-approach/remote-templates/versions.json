@@ -1,0 +1,73 @@
+{
+  "current": {
+    "stable": "2.3",
+    "latest": "2.3"
+  },
+  "versions": {
+    "2.3": {
+      "date": "2024-12-17",
+      "channel": ["stable", "latest"],
+      "changelog": [
+        "Remote templates architecture",
+        "Shell installer (kris-install.sh)",
+        "/kris-upgrade command with backup mechanism",
+        "Backup format: CLAUDE.loves.KRIS.vX.Y.md.backup",
+        "Minimal 5-line READMEs with LLM warnings",
+        "Token budgets: Core 15k, Inner 30k, Middle 50k/file"
+      ],
+      "files": {
+        "base": "CLAUDE.md.base",
+        "commands": [
+          "kris.md",
+          "kris-status.md",
+          "kris-update.md",
+          "kris-upgrade.md",
+          "kris-archive.md",
+          "kris-compact.md",
+          "kris-query.md"
+        ]
+      }
+    },
+    "2.2": {
+      "date": "2024-12-15",
+      "channel": ["archived"],
+      "changelog": [
+        "Decluttered CLAUDE.md with core files split",
+        "Claude persona & behavior (Senior Fullstack + Security)",
+        "Prime Directives (read complete files, search before creating)",
+        "Security Specialist mindset (OWASP checklist)",
+        "Token budgets: Core 15k, Inner 30k, Middle 50k/file"
+      ],
+      "deprecated": true,
+      "upgrade_to": "2.3"
+    },
+    "2.1": {
+      "date": "2024-12-15",
+      "channel": ["archived"],
+      "changelog": [
+        "Auto-detection for existing projects",
+        "Pre-filled answers from config files",
+        "Framework detection from dependencies"
+      ],
+      "deprecated": true,
+      "upgrade_to": "2.3"
+    },
+    "2.0": {
+      "date": "2024-12-15",
+      "channel": ["archived"],
+      "changelog": [
+        "Welcome banner and credits",
+        "KRIS slash commands",
+        "Metadata-first approach"
+      ],
+      "deprecated": true,
+      "upgrade_to": "2.3"
+    }
+  },
+  "minimum_supported": "2.0",
+  "urls": {
+    "base_stable": "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable",
+    "base_latest": "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest",
+    "documentation": "https://github.com/ai-focused/kris-base"
+  }
+}
