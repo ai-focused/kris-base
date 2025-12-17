@@ -1,6 +1,6 @@
 # KRIS Project Setup
 
-> **Scaffolder Version**: v2.3 (Remote Templates Architecture)
+> **Scaffolder Version**: v2.4 (Windows Support)
 > This file will guide you through setting up KRIS for your project.
 
 ---
@@ -205,7 +205,7 @@ I'll validate your answers, help fill in any "not sure" responses, and create yo
 │  KRIS - Knowledge Rings Information System                   │
 │  Created by: Alexandru Negrila (alex@scaledagile.pro)        │
 │  Documentation: https://github.com/ai-focused/kris-base      │
-│  Version: 2.3                                                │
+│  Version: 2.4                                                │
 ╰──────────────────────────────────────────────────────────────╯
 
 ---
@@ -213,11 +213,14 @@ I'll validate your answers, help fill in any "not sure" responses, and create yo
 <!-- CLAUDE INSTRUCTIONS
 
 ## Overview
-This is a KRIS scaffolder (v2.3 - Remote Templates Architecture).
-When opened, run PHASE 0 (auto-detection) first, then guide user through questionnaire.
+This is a KRIS scaffolder (v2.4 - Windows Support).
+When opened, run PHASE 0 (OS detection + auto-detection) first, then guide user through questionnaire.
+
+⚠️ All shell examples in this file use Unix/bash syntax.
+   If SHELL_ENV is "windows", translate all commands to PowerShell before executing.
 
 ## Remote Template URLs
-GITHUB_RAW_BASE = "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable"
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest"
 
 Files to fetch:
 - ${GITHUB_RAW_BASE}/CLAUDE.md.base -> Final CLAUDE.md template
@@ -231,9 +234,37 @@ Files to fetch:
 
 ---
 
-## PHASE 0: AUTO-DETECTION (Run FIRST)
+## PHASE 0: OS DETECTION + AUTO-DETECTION (Run FIRST)
 
-Before showing questions, scan the current folder to detect project state.
+### Step 0: DETECT SHELL ENVIRONMENT
+
+Before anything else, detect the operating system:
+
+1. **Run detection command:**
+   ```bash
+   uname -s 2>/dev/null || echo "Windows"
+   ```
+
+2. **Determine SHELL_ENV:**
+   - If output contains "Darwin" or "Linux" → SHELL_ENV = "unix"
+   - If output contains "MINGW" or "MSYS" → SHELL_ENV = "unix" (Git Bash)
+   - If command fails or returns "Windows" → SHELL_ENV = "windows"
+
+3. **Confirm with user:**
+   ```
+   ╭──────────────────────────────────────────────────────────────╮
+   │  🖥️  Shell Environment Detection                             │
+   ├──────────────────────────────────────────────────────────────┤
+   │  Detected: [unix/windows]                                    │
+   │                                                              │
+   │  Is this correct? (yes/no)                                   │
+   ╰──────────────────────────────────────────────────────────────╯
+   ```
+
+4. **Store result** - Remember SHELL_ENV for the entire session.
+   This will be written to CLAUDE.md as `**Current OS**: [unix/windows]`
+
+---
 
 ### Step 1: Check if folder is empty
 ```bash
@@ -692,5 +723,6 @@ Remember: All settings can be changed via prompting or direct edits.
 | {DEPLOYMENT_TARGET} | Question 5.3 |
 | {CURRENT_DATE} | Today (YYYY-MM-DD) |
 | {CURRENT_MONTH_YEAR} | Today (Month YYYY) |
+| {SHELL_ENV} | From Step 0 (unix/windows) |
 
 -->

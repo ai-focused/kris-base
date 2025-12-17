@@ -1,19 +1,19 @@
 {
   "current": {
-    "stable": "2.3",
-    "latest": "2.3"
+    "stable": "2.4",
+    "latest": "2.4"
   },
   "versions": {
-    "2.3": {
-      "date": "2024-12-17",
+    "2.4": {
+      "date": "2024-12-18",
       "channel": ["stable", "latest"],
       "changelog": [
-        "Remote templates architecture",
-        "Shell installer (kris-install.sh)",
-        "/kris-upgrade command with backup mechanism",
-        "Backup format: CLAUDE.loves.KRIS.vX.Y.md.backup",
-        "Minimal 5-line READMEs with LLM warnings",
-        "Token budgets: Core 15k, Inner 30k, Middle 50k/file"
+        "Windows/PowerShell support",
+        "OS detection in scaffolder (unix/windows)",
+        "Shell Environment section in CLAUDE.md",
+        "PowerShell installer (kris-install.ps1)",
+        "Improved template download with curl (mandatory)",
+        "All shell examples use Unix syntax with translation note for Windows"
       ],
       "files": {
         "base": "CLAUDE.md.base",
@@ -28,6 +28,20 @@
         ]
       }
     },
+    "2.3": {
+      "date": "2024-12-17",
+      "channel": ["archived"],
+      "changelog": [
+        "Remote templates architecture",
+        "Shell installer (kris-install.sh)",
+        "/kris-upgrade command with backup mechanism",
+        "Backup format: CLAUDE.loves.KRIS.vX.Y.md.backup",
+        "Minimal 5-line READMEs with LLM warnings",
+        "Token budgets: Core 15k, Inner 30k, Middle 50k/file"
+      ],
+      "deprecated": true,
+      "upgrade_to": "2.4"
+    },
     "2.2": {
       "date": "2024-12-15",
       "channel": ["archived"],
@@ -39,7 +53,7 @@
         "Token budgets: Core 15k, Inner 30k, Middle 50k/file"
       ],
       "deprecated": true,
-      "upgrade_to": "2.3"
+      "upgrade_to": "2.4"
     },
     "2.1": {
       "date": "2024-12-15",
@@ -50,7 +64,7 @@
         "Framework detection from dependencies"
       ],
       "deprecated": true,
-      "upgrade_to": "2.3"
+      "upgrade_to": "2.4"
     },
     "2.0": {
       "date": "2024-12-15",
@@ -61,7 +75,7 @@
         "Metadata-first approach"
       ],
       "deprecated": true,
-      "upgrade_to": "2.3"
+      "upgrade_to": "2.4"
     }
   },
   "minimum_supported": "2.0",

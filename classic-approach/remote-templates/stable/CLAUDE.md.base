@@ -1,7 +1,16 @@
 # Welcome to {PROJECT_NAME}!
 
-> **We're using KRIS** (Knowledge Rings Information System)
+> **We're using KRIS** (Knowledge Rings Information System) v2.4
 > Type `/kris` for commands | `/kris-status` for ring health
+
+---
+
+## Shell Environment
+
+**Current OS**: {SHELL_ENV}
+
+⚠️ All shell examples in KRIS documentation (including `/kris-*` commands) use Unix/bash syntax.
+   If Current OS is "windows", translate all commands to PowerShell before executing.
 
 ---
 
