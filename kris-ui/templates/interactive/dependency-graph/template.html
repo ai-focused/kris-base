@@ -1,0 +1,482 @@
+{% extends "interactive/base.html" %}
+{% block title %}Dependency Graph{% endblock %}
+{% block toolbar_title %}Dependency Graph{% endblock %}
+
+{% block head %}
+<style>
+  #canvas-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+  }
+  #canvas-area svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+  .node {
+    position: absolute;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    user-select: none;
+    z-index: 2;
+    min-width: 120px;
+    text-align: center;
+  }
+  .node:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(124,92,255,0.15);
+    transform: scale(1.04);
+    z-index: 3;
+  }
+  .node.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 24px rgba(124,92,255,0.25);
+    z-index: 4;
+  }
+  .node.dep-highlight {
+    border-color: rgba(124,92,255,0.4);
+    box-shadow: 0 0 12px rgba(124,92,255,0.1);
+  }
+  .node.dimmed { opacity: 0.25; }
+  .node-label {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .node-phase {
+    font-size: 10px;
+    font-weight: 500;
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .node-phase.mvp { color: var(--mvp-color); }
+  .node-phase.post-mvp { color: var(--post-mvp-color); }
+
+  /* Panel */
+  #detail {
+    width: 360px;
+    min-width: 360px;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 24px;
+    transition: transform 0.3s, width 0.3s, min-width 0.3s, padding 0.3s;
+  }
+  #detail.hidden {
+    transform: translateX(100%);
+    width: 0; min-width: 0; padding: 0; overflow: hidden;
+  }
+  #detail h2 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .panel-id { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 16px; }
+  .panel-section { margin-bottom: 16px; }
+  .panel-section h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); margin-bottom: 6px;
+  }
+  .panel-section p, .panel-section li { font-size: 13px; line-height: 1.6; }
+  .panel-section ul { list-style: none; padding: 0; }
+  .panel-section ul li { padding: 3px 0 3px 14px; position: relative; }
+  .panel-section ul li::before {
+    content: '>'; position: absolute; left: 0;
+    color: var(--accent); font-weight: 600; font-size: 11px;
+  }
+  .dep-link { color: var(--accent); cursor: pointer; text-decoration: none; font-weight: 500; }
+  .dep-link:hover { text-decoration: underline; }
+  .flow-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; background: rgba(124,92,255,0.1); color: var(--accent); margin: 2px 4px 2px 0;
+  }
+  .panel-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: var(--text-muted); font-size: 18px; cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .panel-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  /* Legend */
+  #legend {
+    position: absolute; bottom: 16px; left: 16px;
+    display: flex; gap: 16px; z-index: 10; font-size: 11px; color: var(--text-muted);
+  }
+  #legend span { display: flex; align-items: center; gap: 6px; }
+  #legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+  #legend .dot.mvp { background: var(--mvp-color); }
+  #legend .dot.post-mvp { background: var(--post-mvp-color); }
+
+  /* Loading */
+  #loading {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-size: 14px; color: var(--text-muted); z-index: 20;
+  }
+</style>
+{% endblock %}
+
+{% block toolbar_controls %}
+<div style="display:flex;gap:8px" id="filters">
+  <button class="filter-chip active" data-filter="all">All</button>
+  <button class="filter-chip" data-filter="mvp">MVP Only</button>
+</div>
+<a class="toolbar-btn" href="/" title="Back to KRIS">Back to KRIS</a>
+{% endblock %}
+
+{% block body %}
+<div style="display:flex;height:100%">
+  <div id="canvas-area">
+    <div id="legend">
+      <span><span class="dot mvp"></span> MVP</span>
+      <span><span class="dot post-mvp"></span> Post-MVP</span>
+      <span>Click module for details</span>
+    </div>
+    <svg id="edges"></svg>
+    <div id="nodes"></div>
+    <div id="loading">Loading spec...</div>
+  </div>
+  <div id="detail" class="hidden"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  'use strict';
+  const src = KRISInteractive.getQueryParam('src');
+  if (!src) {
+    KRISInteractive.showError(document.getElementById('interactive-body'), 'No source file', 'Pass ?src=path/to/file.md');
+    return;
+  }
+
+  // ---- Parsers ----
+  function parseModules(md) {
+    const modules = [];
+    const section = md.split(/^## Modules$/m)[1];
+    if (!section) return modules;
+    const end = section.search(/^## /m);
+    const content = end > -1 ? section.slice(0, end) : section;
+    const blocks = content.split(/^### /m).filter(b => b.trim());
+    for (const block of blocks) {
+      const lines = block.split('\n');
+      const name = lines[0].trim();
+      const mod = { name, id: '', purpose: '', dependsOn: [], phase: 'MVP', container: '', notes: '' };
+      for (const line of lines) {
+        const kv = line.match(/^- \*\*(.+?)\*\*:\s*(.+)/);
+        if (!kv) continue;
+        const key = kv[1].trim().toLowerCase();
+        const val = kv[2].trim();
+        if (key === 'id') mod.id = val.replace(/`/g, '');
+        else if (key === 'purpose') mod.purpose = val;
+        else if (key === 'depends on') {
+          mod.dependsOn = (val === '\u2014' || val === '—' || val === '-') ? [] : val.split(',').map(d => d.trim());
+        }
+        else if (key === 'phase') mod.phase = val;
+        else if (key === 'container') mod.container = val;
+        else if (key === 'notes') mod.notes = val;
+      }
+      if (mod.id) modules.push(mod);
+    }
+    return modules;
+  }
+
+  function parseFlows(md) {
+    const flows = [];
+    const section = md.split(/^## User Flows$/m)[1];
+    if (!section) return flows;
+    const end = section.search(/^## (?!Flow)/m);
+    const content = end > -1 ? section.slice(0, end) : section;
+    const blocks = content.split(/^### /m).filter(b => b.trim());
+    for (const block of blocks) {
+      const lines = block.split('\n');
+      const nameMatch = lines[0].match(/^Flow \d+:\s*(.+)/);
+      if (!nameMatch) continue;
+      const name = nameMatch[1].trim();
+      const tableLines = lines.filter(l => l.startsWith('|') && !l.includes('---') && !l.includes('Step'));
+      const involvedModules = new Set();
+      for (const tl of tableLines) {
+        const cells = tl.split('|').map(c => c.trim()).filter(c => c);
+        if (cells.length >= 3) cells[2].split(',').forEach(m => involvedModules.add(m.trim()));
+      }
+      flows.push({ name, involvedModules: [...involvedModules] });
+    }
+    return flows;
+  }
+
+  function resolveDepId(depStr, modules) {
+    const lower = depStr.toLowerCase().replace(/`/g, '');
+    for (const m of modules) {
+      if (m.name.toLowerCase() === lower || m.id === lower) return m.id;
+    }
+    for (const m of modules) {
+      if (lower.includes(m.name.toLowerCase()) || lower.includes(m.id)) return m.id;
+    }
+    return null;
+  }
+
+  function getEdges(modules) {
+    const edges = [];
+    for (const m of modules) {
+      for (const dep of m.dependsOn) {
+        const targetId = resolveDepId(dep, modules);
+        if (targetId && targetId !== m.id) edges.push({ from: m.id, to: targetId });
+      }
+    }
+    return edges;
+  }
+
+  function resolveFlowModules(flows, modules) {
+    for (const f of flows) {
+      const resolved = new Set();
+      for (const name of f.involvedModules) {
+        const id = resolveDepId(name, modules);
+        if (id) resolved.add(id);
+      }
+      f.resolvedModuleIds = [...resolved];
+    }
+    return flows;
+  }
+
+  // ---- Layout ----
+  function computeLayout(modules, edges) {
+    const ids = modules.map(m => m.id);
+    const deps = {}, usedBy = {};
+    ids.forEach(id => { deps[id] = new Set(); usedBy[id] = new Set(); });
+    for (const e of edges) { deps[e.from].add(e.to); usedBy[e.to].add(e.from); }
+
+    const layer = {};
+    ids.forEach(id => { layer[id] = 0; });
+    const queue = ids.filter(id => usedBy[id].size === 0).slice();
+    let qi = 0;
+    while (qi < queue.length && qi < ids.length * ids.length + 1) {
+      const id = queue[qi++];
+      for (const depId of deps[id]) {
+        const needed = layer[id] + 1;
+        if (needed > layer[depId]) { layer[depId] = needed; queue.push(depId); }
+      }
+    }
+
+    const layerGroups = {};
+    ids.forEach(id => { const l = layer[id]; if (!layerGroups[l]) layerGroups[l] = []; layerGroups[l].push(id); });
+
+    const positions = {};
+    const detailOpen = !document.getElementById('detail').classList.contains('hidden');
+    const panelW = detailOpen ? 360 : 0;
+    const canvasW = window.innerWidth - panelW;
+    const canvasH = document.getElementById('interactive-body').offsetHeight;
+    const layerKeys = Object.keys(layerGroups).map(Number).sort((a, b) => a - b);
+    const layerH = canvasH / (layerKeys.length + 1);
+
+    layerKeys.forEach((l, li) => {
+      const group = layerGroups[l];
+      const y = (li + 0.8) * layerH;
+      const gap = canvasW / (group.length + 1);
+      group.forEach((id, i) => { positions[id] = { x: gap * (i + 1), y }; });
+    });
+    return positions;
+  }
+
+  // ---- Render ----
+  let allModules = [], allFlows = [], allEdges = [], positions = {}, selectedId = null;
+
+  function renderNodes() {
+    const container = document.getElementById('nodes');
+    container.innerHTML = '';
+    for (const m of allModules) {
+      const pos = positions[m.id];
+      if (!pos) continue;
+      const div = document.createElement('div');
+      div.className = 'node';
+      div.dataset.id = m.id;
+      div.style.left = (pos.x - 65) + 'px';
+      div.style.top = (pos.y - 22) + 'px';
+      const isMvp = m.phase.toLowerCase().startsWith('mvp');
+      div.innerHTML = `<div class="node-label">${m.name}</div><div class="node-phase ${isMvp ? 'mvp' : 'post-mvp'}">${isMvp ? 'MVP' : 'Post-MVP'}</div>`;
+      div.addEventListener('click', e => { e.stopPropagation(); selectModule(m.id); });
+      container.appendChild(div);
+    }
+  }
+
+  function renderEdges() {
+    const svg = document.getElementById('edges');
+    svg.innerHTML = '';
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    ['arrow', 'arrow-hl'].forEach((id, i) => {
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      marker.setAttribute('id', id); marker.setAttribute('markerWidth', '8'); marker.setAttribute('markerHeight', '6');
+      marker.setAttribute('refX', '8'); marker.setAttribute('refY', '3'); marker.setAttribute('orient', 'auto');
+      const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      poly.setAttribute('points', '0 0, 8 3, 0 6');
+      poly.setAttribute('fill', i === 0 ? 'var(--border-light)' : 'var(--accent)');
+      marker.appendChild(poly); defs.appendChild(marker);
+    });
+    svg.appendChild(defs);
+
+    for (const edge of allEdges) {
+      const from = positions[edge.from], to = positions[edge.to];
+      if (!from || !to) continue;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', from.x); line.setAttribute('y1', from.y + 12);
+      line.setAttribute('x2', to.x); line.setAttribute('y2', to.y - 12);
+      line.setAttribute('stroke', 'var(--border-light)'); line.setAttribute('stroke-width', '1.5');
+      line.setAttribute('marker-end', 'url(#arrow)');
+      line.setAttribute('data-from', edge.from); line.setAttribute('data-to', edge.to);
+      line.style.opacity = '0.5'; line.style.transition = 'opacity 0.2s, stroke 0.2s';
+      svg.appendChild(line);
+    }
+  }
+
+  function selectModule(id) {
+    selectedId = id;
+    const mod = allModules.find(m => m.id === id);
+    if (!mod) return;
+
+    const relatedIds = new Set([id]);
+    const deps = new Set(), dependants = new Set();
+    for (const e of allEdges) {
+      if (e.from === id) { relatedIds.add(e.to); deps.add(e.to); }
+      if (e.to === id) { relatedIds.add(e.from); dependants.add(e.from); }
+    }
+
+    document.querySelectorAll('.node').forEach(n => {
+      n.classList.remove('selected', 'dep-highlight', 'dimmed');
+      const nid = n.dataset.id;
+      if (nid === id) n.classList.add('selected');
+      else if (relatedIds.has(nid)) n.classList.add('dep-highlight');
+      else n.classList.add('dimmed');
+    });
+
+    document.querySelectorAll('#edges line').forEach(line => {
+      const f = line.getAttribute('data-from'), t = line.getAttribute('data-to');
+      if (f === id || t === id) {
+        line.style.opacity = '1'; line.setAttribute('stroke', 'var(--accent)');
+        line.setAttribute('stroke-width', '2'); line.setAttribute('marker-end', 'url(#arrow-hl)');
+      } else {
+        line.style.opacity = '0.12'; line.setAttribute('stroke', 'var(--border-light)');
+        line.setAttribute('stroke-width', '1.5'); line.setAttribute('marker-end', 'url(#arrow)');
+      }
+    });
+
+    const involvedFlows = allFlows.filter(f => f.resolvedModuleIds && f.resolvedModuleIds.includes(id));
+    const isMvp = mod.phase.toLowerCase().startsWith('mvp');
+
+    const listHtml = (ids, label) => {
+      if (ids.size === 0) return `<p style="color:var(--text-muted)">${label}</p>`;
+      return '<ul>' + [...ids].map(d => {
+        const dm = allModules.find(m => m.id === d);
+        return `<li><a class="dep-link" data-target="${d}">${dm ? dm.name : d}</a></li>`;
+      }).join('') + '</ul>';
+    };
+
+    const detail = document.getElementById('detail');
+    detail.classList.remove('hidden');
+    detail.innerHTML = `
+      <button class="panel-close" id="panel-close">&times;</button>
+      <h2>${mod.name}</h2>
+      <div class="panel-id">${mod.id}</div>
+      <div class="panel-section"><h3>Phase</h3><p><span class="tag ${isMvp ? 'tag-mvp' : 'tag-post-mvp'}">${isMvp ? 'MVP' : 'Post-MVP'}</span></p>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px">${mod.phase}</p></div>
+      <div class="panel-section"><h3>Purpose</h3><p>${mod.purpose}</p></div>
+      ${mod.container ? `<div class="panel-section"><h3>Container</h3><p>${mod.container}</p></div>` : ''}
+      <div class="panel-section"><h3>Depends On</h3>${listHtml(deps, 'None')}</div>
+      <div class="panel-section"><h3>Used By</h3>${listHtml(dependants, 'None')}</div>
+      <div class="panel-section"><h3>User Flows</h3>${involvedFlows.length > 0 ? involvedFlows.map(f => `<span class="flow-tag">${f.name}</span>`).join('') : '<p style="color:var(--text-muted)">Not mapped to a flow</p>'}</div>
+      ${mod.notes ? `<div class="panel-section"><h3>Notes</h3><p>${mod.notes}</p></div>` : ''}
+    `;
+    detail.querySelectorAll('.dep-link').forEach(link => link.addEventListener('click', () => selectModule(link.dataset.target)));
+    document.getElementById('panel-close').addEventListener('click', deselectAll);
+
+    // Re-layout to account for panel width
+    positions = computeLayout(allModules, allEdges);
+    renderNodes(); renderEdges();
+    // Re-highlight after re-render
+    document.querySelectorAll('.node').forEach(n => {
+      n.classList.remove('selected', 'dep-highlight', 'dimmed');
+      const nid = n.dataset.id;
+      if (nid === id) n.classList.add('selected');
+      else if (relatedIds.has(nid)) n.classList.add('dep-highlight');
+      else n.classList.add('dimmed');
+    });
+    document.querySelectorAll('#edges line').forEach(line => {
+      const f = line.getAttribute('data-from'), t = line.getAttribute('data-to');
+      if (f === id || t === id) {
+        line.style.opacity = '1'; line.setAttribute('stroke', 'var(--accent)');
+        line.setAttribute('stroke-width', '2'); line.setAttribute('marker-end', 'url(#arrow-hl)');
+      } else {
+        line.style.opacity = '0.12';
+      }
+    });
+  }
+
+  function deselectAll() {
+    selectedId = null;
+    document.querySelectorAll('.node').forEach(n => n.classList.remove('selected', 'dep-highlight', 'dimmed'));
+    document.querySelectorAll('#edges line').forEach(line => {
+      line.style.opacity = '0.5'; line.setAttribute('stroke', 'var(--border-light)');
+      line.setAttribute('stroke-width', '1.5'); line.setAttribute('marker-end', 'url(#arrow)');
+    });
+    document.getElementById('detail').classList.add('hidden');
+    positions = computeLayout(allModules, allEdges);
+    renderNodes(); renderEdges();
+  }
+
+  // ---- Filters ----
+  document.getElementById('filters').addEventListener('click', e => {
+    const btn = e.target.closest('.filter-chip');
+    if (!btn) return;
+    document.querySelectorAll('#filters .filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    document.querySelectorAll('.node').forEach(n => { n.style.display = ''; n.classList.remove('dimmed'); });
+    document.querySelectorAll('#edges line').forEach(l => l.style.display = '');
+    if (filter === 'mvp') {
+      allModules.forEach(m => {
+        const node = document.querySelector(`.node[data-id="${m.id}"]`);
+        if (node && !m.phase.toLowerCase().startsWith('mvp')) node.classList.add('dimmed');
+      });
+    }
+  });
+
+  // ---- Init ----
+  async function init() {
+    try {
+      const raw = await KRISInteractive.fetchRaw(src);
+      const { body } = KRISInteractive.parseFrontmatter(raw);
+      allModules = parseModules(body);
+      allFlows = resolveFlowModules(parseFlows(body), allModules);
+      allEdges = getEdges(allModules);
+
+      if (allModules.length === 0) {
+        KRISInteractive.showError(document.getElementById('canvas-area'),
+          'No modules found', 'This document doesn\'t have a ## Modules section with ### Module entries.');
+        document.getElementById('loading').style.display = 'none';
+        return;
+      }
+
+      positions = computeLayout(allModules, allEdges);
+      document.getElementById('loading').style.display = 'none';
+      renderNodes(); renderEdges();
+
+      document.getElementById('canvas-area').addEventListener('click', e => {
+        if (e.target === e.currentTarget || e.target.tagName === 'svg' || e.target.id === 'nodes') deselectAll();
+      });
+
+      window.addEventListener('resize', () => {
+        positions = computeLayout(allModules, allEdges);
+        renderNodes(); renderEdges();
+        if (selectedId) selectModule(selectedId);
+      });
+    } catch (err) {
+      document.getElementById('loading').textContent = 'Error: ' + err.message;
+    }
+  }
+  init();
+})();
+</script>
+{% endblock %}

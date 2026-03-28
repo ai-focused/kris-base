@@ -1,0 +1,331 @@
+{% extends "interactive/base.html" %}
+{% block title %}Flow Diagram{% endblock %}
+{% block toolbar_title %}Flow Diagram{% endblock %}
+
+{% block head %}
+<style>
+  .flows-container {
+    padding: 24px;
+    max-width: 1200px;
+  }
+  .flow-lane {
+    margin-bottom: 32px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .flow-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .flow-header .flow-number {
+    background: var(--accent);
+    color: #fff;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .flow-steps {
+    display: flex;
+    align-items: stretch;
+    overflow-x: auto;
+    padding: 16px 12px;
+    gap: 0;
+  }
+  .flow-step {
+    flex-shrink: 0;
+    min-width: 140px;
+    max-width: 200px;
+    padding: 12px 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .flow-step:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(124,92,255,0.1);
+  }
+  .flow-step.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(124,92,255,0.2);
+  }
+  .flow-step.dimmed { opacity: 0.3; }
+  .flow-step.module-highlight {
+    border-color: var(--accent);
+    background: rgba(124,92,255,0.05);
+  }
+  .step-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+  }
+  .step-screen {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .step-modules {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .module-chip {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+    background: rgba(124,92,255,0.1);
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .module-chip:hover {
+    background: rgba(124,92,255,0.2);
+  }
+  .module-chip.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .step-phase {
+    margin-top: 6px;
+  }
+  /* Arrow between steps */
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    color: var(--text-muted);
+    font-size: 18px;
+    flex-shrink: 0;
+    opacity: 0.4;
+  }
+
+  /* Detail panel */
+  #step-detail {
+    position: fixed;
+    top: 0; right: 0;
+    width: 340px; height: 100vh;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 24px;
+    transform: translateX(100%);
+    transition: transform 0.2s;
+    z-index: 50;
+  }
+  #step-detail.open { transform: translateX(0); }
+  .detail-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: var(--text-muted); font-size: 18px; cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .detail-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  /* Empty state */
+  .no-flows {
+    text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 14px;
+  }
+</style>
+{% endblock %}
+
+{% block toolbar_controls %}
+<div style="display:flex;gap:8px" id="filters"></div>
+<a class="toolbar-btn" href="/" title="Back to KRIS">Back to KRIS</a>
+{% endblock %}
+
+{% block body %}
+<div class="flows-container" id="flows-container">
+  <div style="text-align:center;padding:40px;color:var(--text-muted)">Loading flows...</div>
+</div>
+<div id="step-detail"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  'use strict';
+  const src = KRISInteractive.getQueryParam('src');
+  if (!src) {
+    KRISInteractive.showError(document.getElementById('flows-container'), 'No source file', 'Pass ?src=path/to/file.md');
+    return;
+  }
+
+  function parseFlows(md) {
+    const flows = [];
+    const section = md.split(/^## User Flows$/m)[1];
+    if (!section) return flows;
+    const end = section.search(/^## (?!Flow)/m);
+    const content = end > -1 ? section.slice(0, end) : section;
+    const blocks = content.split(/^### /m).filter(b => b.trim());
+
+    for (const block of blocks) {
+      const lines = block.split('\n');
+      const nameMatch = lines[0].match(/^Flow \d+:\s*(.+)/);
+      if (!nameMatch) continue;
+      const name = nameMatch[1].trim();
+      const number = lines[0].match(/^Flow (\d+)/)[1];
+
+      const steps = [];
+      const tableLines = lines.filter(l => l.startsWith('|') && !l.includes('---'));
+      const headerLine = tableLines[0];
+      const dataLines = tableLines.slice(1);
+      if (!headerLine) continue;
+
+      // Detect header columns
+      for (const tl of dataLines) {
+        const cells = tl.split('|').map(c => c.trim()).filter(c => c);
+        if (cells.length >= 3) {
+          steps.push({
+            step: cells[0],
+            screen: cells.length >= 4 ? cells[1] : '',
+            modules: (cells.length >= 4 ? cells[2] : cells[1]).split(',').map(m => m.trim()),
+            phase: cells.length >= 4 ? cells[3] : (cells[2] || 'MVP'),
+          });
+        }
+      }
+      flows.push({ name, number, steps });
+    }
+    return flows;
+  }
+
+  let allFlows = [];
+  let allModules = new Set();
+  let highlightedModule = null;
+
+  function collectModules(flows) {
+    const mods = new Set();
+    flows.forEach(f => f.steps.forEach(s => s.modules.forEach(m => mods.add(m))));
+    return mods;
+  }
+
+  function render() {
+    const container = document.getElementById('flows-container');
+    if (allFlows.length === 0) {
+      container.innerHTML = '<div class="no-flows">No user flows found in this document.<br>Expected a <code>## User Flows</code> section.</div>';
+      return;
+    }
+
+    container.innerHTML = allFlows.map((flow, fi) => {
+      const stepsHtml = flow.steps.map((step, si) => {
+        const isMvp = step.phase.toLowerCase().startsWith('mvp');
+        const chipsHtml = step.modules.map(m =>
+          `<span class="module-chip${highlightedModule === m ? ' active' : ''}" data-module="${m}">${m}</span>`
+        ).join('');
+        const arrow = si < flow.steps.length - 1 ? '<div class="flow-arrow">\u2192</div>' : '';
+        return `
+          <div class="flow-step${highlightedModule && !step.modules.includes(highlightedModule) ? ' dimmed' : ''}${highlightedModule && step.modules.includes(highlightedModule) ? ' module-highlight' : ''}"
+               data-flow="${fi}" data-step="${si}">
+            <div class="step-name">${step.step}</div>
+            <div class="step-screen">${step.screen}</div>
+            <div class="step-modules">${chipsHtml}</div>
+            <div class="step-phase"><span class="tag ${isMvp ? 'tag-mvp' : 'tag-post-mvp'}">${isMvp ? 'MVP' : 'Post-MVP'}</span></div>
+          </div>
+          ${arrow}
+        `;
+      }).join('');
+
+      return `
+        <div class="flow-lane">
+          <div class="flow-header">
+            <span class="flow-number">${flow.number}</span>
+            ${flow.name}
+          </div>
+          <div class="flow-steps">${stepsHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    // Wire click handlers
+    container.querySelectorAll('.flow-step').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('.module-chip')) return;
+        const fi = parseInt(el.dataset.flow);
+        const si = parseInt(el.dataset.step);
+        showStepDetail(allFlows[fi], allFlows[fi].steps[si]);
+        container.querySelectorAll('.flow-step').forEach(s => s.classList.remove('selected'));
+        el.classList.add('selected');
+      });
+    });
+
+    container.querySelectorAll('.module-chip').forEach(chip => {
+      chip.addEventListener('click', e => {
+        e.stopPropagation();
+        const mod = chip.dataset.module;
+        highlightedModule = highlightedModule === mod ? null : mod;
+        render();
+      });
+    });
+  }
+
+  function showStepDetail(flow, step) {
+    const detail = document.getElementById('step-detail');
+    const isMvp = step.phase.toLowerCase().startsWith('mvp');
+    detail.innerHTML = `
+      <button class="detail-close" onclick="document.getElementById('step-detail').classList.remove('open');document.querySelectorAll('.flow-step').forEach(s=>s.classList.remove('selected'))">&times;</button>
+      <h3 style="font-size:16px;margin-bottom:4px">${step.step}</h3>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">${flow.name}</p>
+      <div class="panel-section" style="margin-bottom:16px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:6px">Screen</div>
+        <p style="font-size:13px">${step.screen || 'Not specified'}</p>
+      </div>
+      <div class="panel-section" style="margin-bottom:16px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:6px">Modules</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${step.modules.map(m => `<span class="module-chip" style="font-size:12px;padding:3px 10px">${m}</span>`).join('')}</div>
+      </div>
+      <div class="panel-section">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);margin-bottom:6px">Phase</div>
+        <span class="tag ${isMvp ? 'tag-mvp' : 'tag-post-mvp'}">${isMvp ? 'MVP' : 'Post-MVP'}</span>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px">${step.phase}</p>
+      </div>
+    `;
+    detail.classList.add('open');
+  }
+
+  // ---- Filters ----
+  function setupFilters() {
+    const filterItems = [
+      { label: 'All Flows', value: 'all', active: true },
+    ];
+    allModules.forEach(m => filterItems.push({ label: m, value: m }));
+    KRISInteractive.initFilters(document.getElementById('filters'), filterItems, val => {
+      if (val === 'all') {
+        highlightedModule = null;
+      } else {
+        highlightedModule = val;
+      }
+      render();
+    });
+  }
+
+  // ---- Init ----
+  async function init() {
+    try {
+      const raw = await KRISInteractive.fetchRaw(src);
+      const { body } = KRISInteractive.parseFrontmatter(raw);
+      allFlows = parseFlows(body);
+      allModules = collectModules(allFlows);
+      render();
+      setupFilters();
+    } catch (err) {
+      KRISInteractive.showError(document.getElementById('flows-container'), 'Error loading flows', err.message);
+    }
+  }
+  init();
+})();
+</script>
+{% endblock %}

@@ -131,14 +131,25 @@ Write-Host "Downloading KRIS UI..." -ForegroundColor Cyan
 $KRIS_UI_DIR = "memory-bank\kris-ui"
 $KRIS_UI_FILES = @(
     "kris-ui.py",
+    "kris-ui.md",
     "requirements.txt",
     "templates/index.html",
     "static/css/style.css",
-    "static/js/kris-ui.js"
+    "static/css/interactive-base.css",
+    "static/js/kris-ui.js",
+    "static/js/interactive-base.js",
+    "templates/interactive/base.html",
+    "templates/interactive/dependency-graph/manifest.json",
+    "templates/interactive/dependency-graph/template.html",
+    "templates/interactive/dependency-graph/format.md",
+    "templates/interactive/flow-diagram/manifest.json",
+    "templates/interactive/flow-diagram/template.html",
+    "templates/interactive/flow-diagram/format.md"
 )
 
 # Create directory structure
-New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates" | Out-Null
+New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\dependency-graph" | Out-Null
+New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\flow-diagram" | Out-Null
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\static\css" | Out-Null
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\static\js" | Out-Null
 

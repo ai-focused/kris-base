@@ -6,11 +6,36 @@ let ringsData = {};
 let activeRing = null;
 let activeFile = null;
 let treeFocusIdx = -1;
+let interactiveMeta = {}; // path -> [template_ids]
+
+// --- Theme ---
+function initTheme() {
+  const saved = localStorage.getItem('kris-theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeIcon(saved);
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('kris-theme', next);
+  updateThemeIcon(next);
+}
+function updateThemeIcon(theme) {
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+}
+initTheme();
 
 // --- Init ---
 async function init() {
-  const res = await fetch('/api/rings');
-  ringsData = await res.json();
+  const [ringsRes, metaRes] = await Promise.all([
+    fetch('/api/rings'),
+    fetch('/api/interactive-meta'),
+  ]);
+  ringsData = await ringsRes.json();
+  const metaList = await metaRes.json();
+  metaList.forEach(m => { interactiveMeta[m.path] = m.interactive; });
   renderRingNav();
   // URL state
   const params = new URLSearchParams(location.search);
@@ -126,9 +151,13 @@ function renderFileItem(f, badge) {
   const badgeHtml = badge === 'default'
     ? '<span class="file-badge default">def</span>'
     : '<span class="file-badge custom">+</span>';
+  const interactiveBadge = interactiveMeta[f.path]
+    ? '<span class="file-badge interactive" title="Has interactive view">&#x26A1;</span>'
+    : '';
   return `<div class="file-item${isActive ? ' active' : ''}" onclick="selectFile('${f.path}')" title="${f.path}">
     <span class="file-icon">&#x1F4C4;</span>
     <span class="file-name">${f.name}</span>
+    ${interactiveBadge}
     ${badgeHtml}
     <span class="file-tokens">${f.tokens}t</span>
   </div>`;
@@ -170,14 +199,77 @@ async function selectFile(path, searchQuery) {
     : '<span class="file-badge custom" style="margin-left:8px">custom</span>';
   view.innerHTML = `
     <div class="breadcrumb fade-in">
+      <span class="breadcrumb-project" title="${MEMORY_BANK_PATH}">${PROJECT_NAME}</span>
+      <span class="sep">/</span>
       <span class="ring-badge" style="background:${ringConf.color || '#666'}">${ringConf.label || ring}</span>
       ${folder}
       <span class="sep">/</span>
       ${data.meta.name}
       ${typeBadge}
     </div>
-    <div class="fade-in">${data.html}</div>
+    <div class="md-content fade-in">${data.html}</div>
   `;
+
+  // Interactive toggle bar
+  if (data.interactive && data.interactive.length > 0) {
+    const breadcrumb = view.querySelector('.breadcrumb');
+    const mdContent = view.querySelector('.md-content');
+    let activeTemplateId = data.interactive[0];
+
+    const toggleBar = document.createElement('div');
+    toggleBar.className = 'interactive-toggle-bar fade-in';
+
+    // Build template buttons — one per template, or just "Interactive" if single
+    let templateBtns = '';
+    if (data.interactive.length === 1) {
+      templateBtns = `<button class="toggle-btn" data-mode="interactive" data-template="${data.interactive[0]}">Interactive</button>`;
+    } else {
+      templateBtns = data.interactive.map(tid => {
+        const label = tid.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        return `<button class="toggle-btn" data-mode="interactive" data-template="${tid}">${label}</button>`;
+      }).join('');
+    }
+
+    toggleBar.innerHTML = `
+      <button class="toggle-btn active" data-mode="source">Source</button>
+      ${templateBtns}
+      <a class="toggle-newtab" href="/interactive/render/${activeTemplateId}?src=${encodeURIComponent(path)}"
+         target="_blank" rel="noopener" title="Open in new tab">&#x2197;</a>
+    `;
+    breadcrumb.after(toggleBar);
+
+    function switchToTemplate(tid) {
+      activeTemplateId = tid;
+      mdContent.style.display = 'none';
+      // Remove any existing iframe
+      const oldIframe = view.querySelector('.interactive-iframe');
+      if (oldIframe) oldIframe.remove();
+      // Create new iframe for this template
+      const iframe = document.createElement('iframe');
+      iframe.className = 'interactive-iframe';
+      iframe.src = `/interactive/render/${tid}?src=${encodeURIComponent(path)}&embed=true`;
+      view.appendChild(iframe);
+      // Update new-tab link
+      const ntLink = toggleBar.querySelector('.toggle-newtab');
+      if (ntLink) ntLink.href = `/interactive/render/${tid}?src=${encodeURIComponent(path)}`;
+    }
+
+    toggleBar.addEventListener('click', function(e) {
+      const btn = e.target.closest('.toggle-btn');
+      if (!btn) return;
+      const mode = btn.dataset.mode;
+      toggleBar.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (mode === 'interactive') {
+        switchToTemplate(btn.dataset.template);
+      } else {
+        mdContent.style.display = '';
+        const iframe = view.querySelector('.interactive-iframe');
+        if (iframe) iframe.remove();
+      }
+    });
+  }
 
   // Metadata
   renderMeta(data);
@@ -573,8 +665,13 @@ document.addEventListener('keydown', function(e) {
     return;
   }
 
-  // Escape: close help modal
+  // Escape: dismiss search matches first, then close help modal
   if (e.key === 'Escape') {
+    if (searchHits.length > 0) {
+      e.preventDefault();
+      hideJumpBtn();
+      return;
+    }
     const modal = document.getElementById('help-modal');
     if (modal.classList.contains('active')) {
       toggleHelp();
@@ -698,38 +795,80 @@ async function showInteractiveDocs() {
   view.style.display = 'block';
   view.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Loading...</div>';
 
-  const res = await fetch('/api/interactive-docs');
-  const docs = await res.json();
+  const [htmlRes, metaRes, templatesRes] = await Promise.all([
+    fetch('/api/interactive-docs'),
+    fetch('/api/interactive-meta'),
+    fetch('/api/templates'),
+  ]);
+  const htmlDocs = await htmlRes.json();
+  const taggedDocs = await metaRes.json();
+  const templates = await templatesRes.json();
 
-  if (docs.length === 0) {
-    view.innerHTML = '<div class="interactive-landing"><h2>Interactive Documentation</h2><p class="il-subtitle">Visual, explorable diagrams generated from spec files.</p><div class="il-empty">No interactive documents found.<br>Add .html files to any ring\'s <code>interactive/</code> folder.</div></div>';
+  // Build template lookup
+  const templateMap = {};
+  templates.forEach(t => { templateMap[t.id] = t; });
+
+  if (htmlDocs.length === 0 && taggedDocs.length === 0) {
+    view.innerHTML = '<div class="interactive-landing"><h2>Interactive Documentation</h2><p class="il-subtitle">Visual, explorable diagrams and interactive views.</p><div class="il-empty">No interactive documents found.<br>Add <code>interactive: template-name</code> frontmatter to a markdown file, or add .html files to a ring\'s <code>interactive/</code> folder.</div></div>';
     return;
   }
 
-  // Group by ring
-  const byRing = {};
-  docs.forEach(d => {
-    if (!byRing[d.ring]) byRing[d.ring] = [];
-    byRing[d.ring].push(d);
-  });
+  let html = '<div class="interactive-landing fade-in"><h2>Interactive Documentation</h2><p class="il-subtitle">Visual, explorable diagrams and interactive views.</p>';
 
-  let html = '<div class="interactive-landing fade-in"><h2>Interactive Documentation</h2><p class="il-subtitle">Visual, explorable diagrams generated from spec files. Opens in a new tab.</p>';
-
-  RING_ORDER.forEach(ring => {
-    const items = byRing[ring];
-    if (!items) return;
-    const rc = RINGS_CONFIG[ring] || {};
-    html += `<div class="interactive-ring-group">`;
-    html += `<div class="interactive-ring-label"><span class="interactive-ring-dot" style="background:${rc.color}"></span>${rc.label} Ring</div>`;
-    items.forEach(d => {
-      html += `<a class="il-card" href="${d.url}" target="_blank" rel="noopener">
-        <div class="il-card-title">${d.title}</div>
-        <div class="il-card-meta"><span>Updated ${d.modified}</span><span>${d.size_kb} KB</span></div>
-        <div class="il-card-open">Open in new tab &#x2197;</div>
-      </a>`;
+  // --- Template-tagged docs (grouped by template type) ---
+  if (taggedDocs.length > 0) {
+    const byTemplate = {};
+    taggedDocs.forEach(d => {
+      d.interactive.forEach(tid => {
+        if (!byTemplate[tid]) byTemplate[tid] = [];
+        byTemplate[tid].push(d);
+      });
     });
-    html += '</div>';
-  });
+
+    Object.keys(byTemplate).forEach(tid => {
+      const tmpl = templateMap[tid] || { name: tid.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), description: '' };
+      html += `<div class="il-section-label">${tmpl.name}</div>`;
+      if (tmpl.description) html += `<p class="il-section-desc">${tmpl.description}</p>`;
+      byTemplate[tid].forEach(d => {
+        const rc = RINGS_CONFIG[d.ring] || {};
+        html += `<a class="il-card" href="/interactive/render/${tid}?src=${encodeURIComponent(d.path)}" target="_blank" rel="noopener">
+          <div class="il-card-title">${d.title}</div>
+          <div class="il-card-meta">
+            <span class="interactive-ring-dot" style="background:${rc.color}"></span>
+            <span>${rc.label} Ring</span>
+            <span>Updated ${d.modified}</span>
+          </div>
+          <div class="il-card-open">Open interactive view &#x2197;</div>
+        </a>`;
+      });
+    });
+  }
+
+  // --- Standalone HTML docs (grouped by ring) ---
+  if (htmlDocs.length > 0) {
+    html += '<div class="il-section-label">Standalone Interactive Pages</div>';
+    const byRing = {};
+    htmlDocs.forEach(d => {
+      if (!byRing[d.ring]) byRing[d.ring] = [];
+      byRing[d.ring].push(d);
+    });
+
+    RING_ORDER.forEach(ring => {
+      const items = byRing[ring];
+      if (!items) return;
+      const rc = RINGS_CONFIG[ring] || {};
+      html += `<div class="interactive-ring-group">`;
+      html += `<div class="interactive-ring-label"><span class="interactive-ring-dot" style="background:${rc.color}"></span>${rc.label} Ring</div>`;
+      items.forEach(d => {
+        html += `<a class="il-card" href="${d.url}" target="_blank" rel="noopener">
+          <div class="il-card-title">${d.title}</div>
+          <div class="il-card-meta"><span>Updated ${d.modified}</span><span>${d.size_kb} KB</span></div>
+          <div class="il-card-open">Open in new tab &#x2197;</div>
+        </a>`;
+      });
+      html += '</div>';
+    });
+  }
 
   html += '</div>';
   view.innerHTML = html;

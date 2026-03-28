@@ -9,6 +9,8 @@ import threading
 from pathlib import Path
 from datetime import datetime
 
+import yaml
+
 from flask import Flask, jsonify, request, abort, Response, render_template
 
 KRIS_VERSION = "2.5"
@@ -90,6 +92,42 @@ def render_markdown(raw: str) -> str:
         flags=re.IGNORECASE,
     )
     return html
+
+
+# ---------------------------------------------------------------------------
+# Template registry
+# ---------------------------------------------------------------------------
+
+TEMPLATE_REGISTRY: dict[str, dict] = {}
+
+
+def scan_templates():
+    """Scan templates/interactive/*/manifest.json at startup."""
+    global TEMPLATE_REGISTRY
+    TEMPLATE_REGISTRY = {}
+    templates_dir = Path(__file__).parent / "templates" / "interactive"
+    if not templates_dir.is_dir():
+        return
+    for d in sorted(templates_dir.iterdir()):
+        if not d.is_dir() or d.name.startswith(("_", ".")):
+            continue
+        template_path = d / "template.html"
+        if not template_path.exists():
+            continue
+        manifest = {}
+        manifest_path = d / "manifest.json"
+        if manifest_path.exists():
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError):
+                pass
+        TEMPLATE_REGISTRY[d.name] = {
+            "id": d.name,
+            "name": manifest.get("name", d.name.replace("-", " ").title()),
+            "description": manifest.get("description", ""),
+            "version": manifest.get("version", "1.0"),
+            "has_format": (d / "format.md").exists(),
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -207,6 +245,35 @@ def parse_frontmatter(content: str) -> list[dict]:
     return pairs
 
 
+def parse_yaml_frontmatter(content: str) -> dict | None:
+    """Extract YAML frontmatter from --- delimited block at start of file."""
+    stripped = content.lstrip()
+    if not stripped.startswith("---"):
+        return None
+    end = stripped.find("---", 3)
+    if end == -1:
+        return None
+    yaml_block = stripped[3:end].strip()
+    if not yaml_block:
+        return None
+    try:
+        parsed = yaml.safe_load(yaml_block)
+        return parsed if isinstance(parsed, dict) else None
+    except yaml.YAMLError:
+        return None
+
+
+def strip_yaml_frontmatter(content: str) -> str:
+    """Remove YAML frontmatter block from content for rendering."""
+    stripped = content.lstrip()
+    if not stripped.startswith("---"):
+        return content
+    end = stripped.find("---", 3)
+    if end == -1:
+        return content
+    return stripped[end + 3:].lstrip("\n")
+
+
 def search_files(query: str) -> list[dict]:
     q = query.lower()
     results = []
@@ -262,6 +329,7 @@ def search_files(query: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 app = Flask(__name__)
+scan_templates()
 
 
 @app.route("/api/rings")
@@ -287,14 +355,24 @@ def api_file():
     # Pass virtual_path for files outside memory-bank root (e.g., CLAUDE.md)
     is_virtual = not str(fp.resolve()).startswith(str(MEMORY_BANK_ROOT))
     meta = file_meta(fp, ring_name, virtual_path=path_param if is_virtual else "")
-    return jsonify(
-        {
-            "html": render_markdown(content),
-            "raw": content,
-            "meta": meta,
-            "frontmatter": parse_frontmatter(content),
-        }
-    )
+
+    # Parse YAML frontmatter and strip it before rendering
+    yaml_fm = parse_yaml_frontmatter(content)
+    render_content = strip_yaml_frontmatter(content) if yaml_fm else content
+
+    response = {
+        "html": render_markdown(render_content),
+        "raw": content,
+        "meta": meta,
+        "frontmatter": parse_frontmatter(content),
+    }
+
+    # Add interactive field if YAML frontmatter specifies it
+    if yaml_fm and "interactive" in yaml_fm:
+        val = yaml_fm["interactive"]
+        response["interactive"] = val if isinstance(val, list) else [val]
+
+    return jsonify(response)
 
 
 @app.route("/api/search")
@@ -355,14 +433,91 @@ def interactive_page(ring, name):
     return Response(html_path.read_text(encoding="utf-8"), mimetype="text/html")
 
 
+@app.route("/api/templates")
+def api_templates():
+    """Return list of registered interactive templates."""
+    templates = []
+    for tid, t in TEMPLATE_REGISTRY.items():
+        entry = {**t}
+        if t["has_format"]:
+            entry["format_url"] = f"/api/template-format?id={tid}"
+        templates.append(entry)
+    return jsonify(templates)
+
+
+@app.route("/api/interactive-meta")
+def api_interactive_meta():
+    """Return all files across all rings that have interactive frontmatter tags."""
+    results = []
+    for ring_name in RING_ORDER:
+        ring_dir = MEMORY_BANK_ROOT / ring_name
+        if not ring_dir.is_dir():
+            continue
+        for fp in ring_dir.rglob("*.md"):
+            try:
+                content = fp.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            yaml_fm = parse_yaml_frontmatter(content)
+            if not yaml_fm or "interactive" not in yaml_fm:
+                continue
+            val = yaml_fm["interactive"]
+            interactive_tags = val if isinstance(val, list) else [val]
+            stat = fp.stat()
+            results.append({
+                "path": str(fp.relative_to(MEMORY_BANK_ROOT)),
+                "ring": ring_name,
+                "name": fp.name,
+                "interactive": interactive_tags,
+                "title": yaml_fm.get("title", fp.stem.replace("-", " ").title()),
+                "modified": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d"),
+            })
+    return jsonify(results)
+
+
+@app.route("/interactive/render/<template_id>")
+def interactive_render(template_id):
+    """Render an interactive template with a source markdown file."""
+    safe_id = re.sub(r"[^a-zA-Z0-9_-]", "", template_id)
+    if safe_id not in TEMPLATE_REGISTRY:
+        abort(404)
+    src = request.args.get("src", "")
+    embed = request.args.get("embed", "false")
+    return render_template(
+        f"interactive/{safe_id}/template.html",
+        template_id=safe_id,
+        src_path=src,
+        embed=embed,
+        kris_version=KRIS_VERSION,
+    )
+
+
+@app.route("/api/template-format")
+def api_template_format():
+    """Serve format.md from a template directory as rendered HTML."""
+    tid = request.args.get("id", "")
+    safe_id = re.sub(r"[^a-zA-Z0-9_-]", "", tid)
+    if safe_id not in TEMPLATE_REGISTRY:
+        abort(404)
+    format_path = Path(__file__).parent / "templates" / "interactive" / safe_id / "format.md"
+    if not format_path.exists():
+        abort(404)
+    content = format_path.read_text(encoding="utf-8", errors="replace")
+    return jsonify({"html": render_markdown(content), "raw": content})
+
+
 @app.route("/")
 def index():
+    # Project name = parent of memory-bank directory
+    project_name = MEMORY_BANK_ROOT.parent.name
     return render_template(
         "index.html",
         pygments_css=PYGMENTS_CSS,
         kris_version=KRIS_VERSION,
         ring_order=RING_ORDER,
         rings_config=RINGS,
+        project_name=project_name,
+        memory_bank_path=str(MEMORY_BANK_ROOT),
     )
 
 

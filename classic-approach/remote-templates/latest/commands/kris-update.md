@@ -43,5 +43,22 @@ Update activeContext.md with current session progress.
    ╰──────────────────────────────────────────────────────────────╯
    ```
 
-6. **Suggest next action**:
+6. **Check interactive template opportunities**
+   For each Middle Ring spec file modified in this session, check:
+   - Does it have structured `## Modules` with `### Name` + `**ID**`, `**Purpose**`, `**Depends on**`, `**Phase**` fields? → Suggest `interactive: dependency-graph`
+   - Does it have `## User Flows` with `### Flow N: Name` + step tables? → Suggest `interactive: flow-diagram`
+   - Does it already have an `interactive:` frontmatter tag that no longer matches the content? → Suggest removing it
+
+   If opportunities found, ask:
+   ```
+   Interactive template opportunity:
+     middle/specs/module-architecture.md could use:
+       - dependency-graph (has ## Modules with 14 structured entries)
+       - flow-diagram (has ## User Flows with 7 flows)
+     Add frontmatter tags? [y/N]
+   ```
+
+   See [kris-ui.md](memory-bank/kris-ui/kris-ui.md#interactive-documentation) for format rules.
+
+7. **Suggest next action**:
    Based on what was updated, suggest logical next step.

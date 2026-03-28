@@ -10,7 +10,7 @@ Usage:
 ### UPGRADE PROCESS
 
 1. **Check current version**
-   Read first and last 50 lines of CLAUDE.md, find "KRIS Version: X.Y"
+   Read first 50 lines of CLAUDE.md, find "KRIS Version: X.Y"
 
 2. **Check available versions**
    Fetch version info from:
@@ -73,13 +73,28 @@ Usage:
 11. **Update KRIS UI**
     Download latest KRIS UI files to `memory-bank/kris-ui/`:
     ```bash
-    mkdir -p memory-bank/kris-ui/templates memory-bank/kris-ui/static/css memory-bank/kris-ui/static/js
-    curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/kris-ui.py" > memory-bank/kris-ui/kris-ui.py
-    curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/requirements.txt" > memory-bank/kris-ui/requirements.txt
-    curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/templates/index.html" > memory-bank/kris-ui/templates/index.html
-    curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/static/css/style.css" > memory-bank/kris-ui/static/css/style.css
-    curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/static/js/kris-ui.js" > memory-bank/kris-ui/static/js/kris-ui.js
+    mkdir -p memory-bank/kris-ui/templates/interactive/dependency-graph memory-bank/kris-ui/templates/interactive/flow-diagram memory-bank/kris-ui/static/css memory-bank/kris-ui/static/js
     ```
+
+    Download all files (use `curl -s` for each):
+    - `kris-ui/kris-ui.py`
+    - `kris-ui/kris-ui.md`
+    - `kris-ui/requirements.txt`
+    - `kris-ui/templates/index.html`
+    - `kris-ui/static/css/style.css`
+    - `kris-ui/static/css/interactive-base.css`
+    - `kris-ui/static/js/kris-ui.js`
+    - `kris-ui/static/js/interactive-base.js`
+    - `kris-ui/templates/interactive/base.html`
+    - `kris-ui/templates/interactive/dependency-graph/manifest.json`
+    - `kris-ui/templates/interactive/dependency-graph/template.html`
+    - `kris-ui/templates/interactive/dependency-graph/format.md`
+    - `kris-ui/templates/interactive/flow-diagram/manifest.json`
+    - `kris-ui/templates/interactive/flow-diagram/template.html`
+    - `kris-ui/templates/interactive/flow-diagram/format.md`
+
+    Base URL: `https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/`
+    Download pattern: `curl -s "${BASE_URL}${file}" > "memory-bank/kris-ui/${file}"`
 
     If `memory-bank/kris-ui/.venv` exists, also update dependencies:
     ```bash
