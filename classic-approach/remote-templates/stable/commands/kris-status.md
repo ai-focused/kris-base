@@ -16,8 +16,9 @@ Usage:
    wc -w CLAUDE.md 2>/dev/null
    ```
    ```bash
-   find memory-bank -name "*.md" -exec wc -w {} \;
+   find memory-bank -name "*.md" -not -path "*/kris-ui/*" -exec wc -w {} \;
    ```
+   **NOTE**: Always exclude `memory-bank/kris-ui/` — it contains the KRIS UI app, not ring documentation.
 
 2. **Calculate tokens per ring** (words x 1.3):
    - Core Ring = CLAUDE.md + memory-bank/core/*.md

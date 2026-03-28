@@ -70,13 +70,35 @@ Usage:
 10. **Fetch updated commands**
     Download all command files to .claude/commands/
 
-11. **Write new CLAUDE.md**
+11. **Update KRIS UI**
+    Download latest KRIS UI files to `memory-bank/kris-ui/`:
+    ```bash
+    mkdir -p memory-bank/kris-ui/templates memory-bank/kris-ui/static/css memory-bank/kris-ui/static/js
+    curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/kris-ui.py" > memory-bank/kris-ui/kris-ui.py
+    curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/requirements.txt" > memory-bank/kris-ui/requirements.txt
+    curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/templates/index.html" > memory-bank/kris-ui/templates/index.html
+    curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/static/css/style.css" > memory-bank/kris-ui/static/css/style.css
+    curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/static/js/kris-ui.js" > memory-bank/kris-ui/static/js/kris-ui.js
+    ```
+
+    If `memory-bank/kris-ui/.venv` exists, also update dependencies:
+    ```bash
+    cd memory-bank/kris-ui && .venv/bin/pip install -q -r requirements.txt
+    ```
+
+    If kris-ui was not previously installed, inform user:
+    ```
+    KRIS UI installed! Start it with:
+      cd memory-bank/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python3 kris-ui.py
+    ```
+
+12. **Write new CLAUDE.md**
     Replace current file with merged content
 
-12. **Verify success**
+13. **Verify success**
     Read new CLAUDE.md, confirm version updated
 
-13. **Report completion**
+14. **Report completion**
     ```
     ╭──────────────────────────────────────────────────────────────╮
     │  ✓ KRIS Upgrade Complete!                                    │
@@ -84,6 +106,7 @@ Usage:
     │  Previous: vX.Y                                              │
     │  Current:  vZ.W                                              │
     │  Backup:   CLAUDE.loves.KRIS.vX.Y.md.backup                  │
+    │  KRIS UI:  Updated (memory-bank/kris-ui/)                    │
     ╰──────────────────────────────────────────────────────────────╯
 
     To revert: /kris-upgrade X.Y

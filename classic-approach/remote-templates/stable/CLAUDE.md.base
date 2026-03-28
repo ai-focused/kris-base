@@ -1,6 +1,6 @@
 # Welcome to {PROJECT_NAME}!
 
-> **We're using KRIS** (Knowledge Rings Information System) v2.4
+> **We're using KRIS** (Knowledge Rings Information System) v2.5
 > Type `/kris` for commands | `/kris-status` for ring health
 
 ---
@@ -199,6 +199,33 @@ tokens = words x 1.3 (do this in your response, not bash)
 
 ---
 
+## KRIS Memory Bank UI
+
+A local web viewer for browsing KRIS documentation with search, ring navigation, and interactive docs.
+
+**Start** (first time):
+```bash
+cd memory-bank/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python3 kris-ui.py
+```
+
+**Start** (existing venv):
+```bash
+cd memory-bank/kris-ui && .venv/bin/python3 kris-ui.py
+```
+
+**Windows**:
+```powershell
+cd memory-bank\kris-ui; .venv\Scripts\python kris-ui.py
+```
+
+**URL**: http://localhost:5111 (override with `KRIS_UI_PORT` env var)
+
+**Features**: Ring navigation (sidebar), full-text search, keyboard shortcuts (1-4 for rings, `/` for search, `?` for help), markdown rendering with syntax highlighting, token budget tracking, interactive docs viewer.
+
+> Suggest KRIS UI at session start — it saves context by letting users browse docs in the browser instead of reading files through Claude.
+
+---
+
 ## Essential Commands
 
 ```bash
@@ -262,10 +289,10 @@ Run `/kris-status` to check usage.
 │  KRIS - Knowledge Rings Information System                   │
 │  Created by: Alexandru Negrila (alex@scaledagile.pro)        │
 │  Documentation: https://github.com/ai-focused/kris-base      │
-│  KRIS Version: 2.3                                           │
+│  KRIS Version: 2.5                                           │
 ╰──────────────────────────────────────────────────────────────╯
 
 ---
 
 *Last Updated: {CURRENT_DATE}*
-*KRIS Version: 2.3*
+*KRIS Version: 2.5*

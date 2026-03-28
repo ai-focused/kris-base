@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRIS Memory Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>{{ pygments_css }}</style>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <div id="header">
+    <div class="logo">
+      <div class="logo-ring">K</div>
+      KRIS <span>Memory Bank</span>
+    </div>
+    <nav class="header-nav">
+      <a href="#" id="nav-docs" class="active" onclick="event.preventDefault();showDocs()">Docs</a>
+      <a href="#" id="nav-interactive" onclick="event.preventDefault();showInteractiveDocs()">Interactive</a>
+    </nav>
+    <div class="header-spacer"></div>
+    <div id="search-box">
+      <span class="search-icon">&#x1F50D;</span>
+      <input type="text" id="search-input" placeholder="Search...  /" autocomplete="off">
+      <div id="search-results"></div>
+    </div>
+  </div>
+
+  <!-- Help modal -->
+  <div class="modal-overlay" id="help-modal" onclick="if(event.target===this)toggleHelp()">
+    <div class="modal">
+      <h2>Keyboard Shortcuts <span class="caps-badge" id="caps-badge">&#x25B2; CAPS</span> <button class="modal-close" onclick="toggleHelp()">&times;</button></h2>
+      <div class="shortcut-group">
+        <div class="shortcut-group-label">Navigation</div>
+        <div class="shortcut-row"><span class="desc">Core ring</span><kbd>1</kbd></div>
+        <div class="shortcut-row"><span class="desc">Inner ring</span><kbd>2</kbd></div>
+        <div class="shortcut-row"><span class="desc">Middle ring</span><kbd>3</kbd></div>
+        <div class="shortcut-row"><span class="desc">Outer ring</span><kbd>4</kbd></div>
+        <div class="shortcut-row"><span class="desc">Browse files</span><kbd>&#x2191;</kbd> <kbd>&#x2193;</kbd></div>
+        <div class="shortcut-row"><span class="desc">Open focused file</span><kbd>Enter</kbd></div>
+      </div>
+      <div class="shortcut-group">
+        <div class="shortcut-group-label">Quick Access</div>
+        <div class="shortcut-row"><span class="desc">Active Context</span><kbd data-letter="a">a</kbd></div>
+        <div class="shortcut-row"><span class="desc">Progress</span><kbd data-letter="p">p</kbd></div>
+        <div class="shortcut-row"><span class="desc">CLAUDE.md</span><kbd data-letter="c">c</kbd></div>
+      </div>
+      <div class="shortcut-group">
+        <div class="shortcut-group-label">Search</div>
+        <div class="shortcut-row"><span class="desc">Focus search</span><kbd>/</kbd></div>
+        <div class="shortcut-row"><span class="desc">Focus search</span><kbd style="font-size:10px">&#8984;K</kbd></div>
+        <div class="shortcut-row"><span class="desc">Navigate results</span><kbd>&#x2191;</kbd> <kbd>&#x2193;</kbd></div>
+        <div class="shortcut-row"><span class="desc">Open selected</span><kbd>Enter</kbd></div>
+        <div class="shortcut-row"><span class="desc">Close / blur</span><kbd>Esc</kbd></div>
+      </div>
+      <div class="shortcut-group">
+        <div class="shortcut-group-label">Other</div>
+        <div class="shortcut-row"><span class="desc">This help</span><kbd>?</kbd></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="ring-nav" id="ring-nav"></div>
+    <div class="divider"></div>
+    <div class="file-tree-label" id="tree-label">Files</div>
+    <div class="file-tree" id="file-tree"></div>
+  </div>
+
+  <!-- Content -->
+  <div id="content" tabindex="0">
+    <button class="jump-btn" id="jump-btn" onclick="nextHit()" title="Next match (Enter)">&#x2193; Match</button>
+    <div class="welcome-state" id="welcome">
+      <div class="big-icon">&#x25C9;</div>
+      <h2>KRIS Memory Bank</h2>
+      <p>Select a ring and file to start reading</p>
+    </div>
+    <div id="file-view" style="display:none" class="md-body"></div>
+  </div>
+
+  <!-- Metadata -->
+  <div id="meta-panel">
+    <div class="meta-empty" id="meta-empty">Select a file to view metadata</div>
+    <div id="meta-content" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Floating help button -->
+<button class="help-btn" onclick="toggleHelp()" title="Keyboard shortcuts (?)">?</button>
+<span class="version-label">KRIS v{{ kris_version }}</span>
+
+<!-- Config injection from Python -->
+<script>
+  const RING_ORDER = {{ ring_order | tojson }};
+  const RINGS_CONFIG = {{ rings_config | tojson }};
+</script>
+<script src="/static/js/kris-ui.js"></script>
+</body>
+</html>

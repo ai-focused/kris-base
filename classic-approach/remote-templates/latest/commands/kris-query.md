@@ -27,8 +27,8 @@ Valid rings: core, inner, middle, outer, all
    # For specific ring
    grep -rni "topic" memory-bank/{ring}/
 
-   # For all rings
-   grep -rni "topic" memory-bank/
+   # For all rings (exclude kris-ui/ — it's the UI app, not ring content)
+   grep -rni --exclude-dir=kris-ui "topic" memory-bank/
 
    # Also search CLAUDE.md for core queries
    grep -ni "topic" CLAUDE.md

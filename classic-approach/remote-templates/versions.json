@@ -1,19 +1,20 @@
 {
   "current": {
-    "stable": "2.4",
-    "latest": "2.4"
+    "stable": "2.5",
+    "latest": "2.5"
   },
   "versions": {
-    "2.4": {
-      "date": "2024-12-18",
+    "2.5": {
+      "date": "2026-03-28",
       "channel": ["stable", "latest"],
       "changelog": [
-        "Windows/PowerShell support",
-        "OS detection in scaffolder (unix/windows)",
-        "Shell Environment section in CLAUDE.md",
-        "PowerShell installer (kris-install.ps1)",
-        "Improved template download with curl (mandatory)",
-        "All shell examples use Unix syntax with translation note for Windows"
+        "KRIS UI — local web viewer for browsing KRIS documentation",
+        "Installer downloads kris-ui files (kris-ui.py, CSS, JS, HTML template)",
+        "/kris-upgrade now updates KRIS UI files alongside CLAUDE.md and commands",
+        "/kris command shows KRIS UI install status and start instructions",
+        "/kris-status, /kris-query, /kris-compact exclude kris-ui/ from ring analysis",
+        "Phase 0 refactor: kris-ui extracted from monolith into clean multi-file structure",
+        "CLAUDE.md.base includes KRIS UI section with start commands"
       ],
       "files": {
         "base": "CLAUDE.md.base",
@@ -25,8 +26,29 @@
           "kris-archive.md",
           "kris-compact.md",
           "kris-query.md"
+        ],
+        "kris_ui": [
+          "kris-ui/kris-ui.py",
+          "kris-ui/requirements.txt",
+          "kris-ui/templates/index.html",
+          "kris-ui/static/css/style.css",
+          "kris-ui/static/js/kris-ui.js"
         ]
       }
+    },
+    "2.4": {
+      "date": "2024-12-18",
+      "channel": ["archived"],
+      "changelog": [
+        "Windows/PowerShell support",
+        "OS detection in scaffolder (unix/windows)",
+        "Shell Environment section in CLAUDE.md",
+        "PowerShell installer (kris-install.ps1)",
+        "Improved template download with curl (mandatory)",
+        "All shell examples use Unix syntax with translation note for Windows"
+      ],
+      "deprecated": true,
+      "upgrade_to": "2.5"
     },
     "2.3": {
       "date": "2024-12-17",
@@ -40,7 +62,7 @@
         "Token budgets: Core 15k, Inner 30k, Middle 50k/file"
       ],
       "deprecated": true,
-      "upgrade_to": "2.4"
+      "upgrade_to": "2.5"
     },
     "2.2": {
       "date": "2024-12-15",
@@ -53,7 +75,7 @@
         "Token budgets: Core 15k, Inner 30k, Middle 50k/file"
       ],
       "deprecated": true,
-      "upgrade_to": "2.4"
+      "upgrade_to": "2.5"
     },
     "2.1": {
       "date": "2024-12-15",
@@ -64,7 +86,7 @@
         "Framework detection from dependencies"
       ],
       "deprecated": true,
-      "upgrade_to": "2.4"
+      "upgrade_to": "2.5"
     },
     "2.0": {
       "date": "2024-12-15",
@@ -75,7 +97,7 @@
         "Metadata-first approach"
       ],
       "deprecated": true,
-      "upgrade_to": "2.4"
+      "upgrade_to": "2.5"
     }
   },
   "minimum_supported": "2.0",

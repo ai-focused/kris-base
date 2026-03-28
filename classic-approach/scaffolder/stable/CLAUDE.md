@@ -1,6 +1,6 @@
 # KRIS Project Setup
 
-> **Scaffolder Version**: v2.4 (Windows Support)
+> **Scaffolder Version**: v2.5 (Windows Support)
 > This file will guide you through setting up KRIS for your project.
 
 ---
@@ -205,7 +205,7 @@ I'll validate your answers, help fill in any "not sure" responses, and create yo
 │  KRIS - Knowledge Rings Information System                   │
 │  Created by: Alexandru Negrila (alex@scaledagile.pro)        │
 │  Documentation: https://github.com/ai-focused/kris-base      │
-│  Version: 2.4                                                │
+│  Version: 2.5                                                │
 ╰──────────────────────────────────────────────────────────────╯
 
 ---
@@ -213,7 +213,7 @@ I'll validate your answers, help fill in any "not sure" responses, and create yo
 <!-- CLAUDE INSTRUCTIONS
 
 ## Overview
-This is a KRIS scaffolder (v2.4 - Windows Support).
+This is a KRIS scaffolder (v2.5 - Windows Support).
 When opened, run PHASE 0 (OS detection + auto-detection) first, then guide user through questionnaire.
 
 ⚠️ All shell examples in this file use Unix/bash syntax.
@@ -688,7 +688,8 @@ Created:
      ├── core/ (projectBrief, productContext, techContext)
      ├── inner/ (activeContext, progress)
      ├── middle/
-     └── outer/archive/
+     ├── outer/archive/
+     └── kris-ui/ (web viewer for KRIS docs)
   📁 .claude/commands/ (7 KRIS commands)
   📄 CLAUDE.md
 
@@ -696,6 +697,10 @@ Available commands:
   /kris          - Show status and next steps
   /kris-status   - Check token usage
   /kris-upgrade  - Upgrade KRIS version
+
+KRIS UI (visual doc browser):
+  cd memory-bank/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python3 kris-ui.py
+  Then open http://localhost:5111
 
 Next steps:
   1. Review CLAUDE.md

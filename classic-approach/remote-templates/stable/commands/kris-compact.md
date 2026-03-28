@@ -1,5 +1,7 @@
 Optimize ring content and suggest what to archive.
 
+**NOTE**: Always exclude `memory-bank/kris-ui/` from analysis — it contains the KRIS UI app, not ring documentation.
+
 ## Instructions
 
 1. **Analyze each ring**:

@@ -17,6 +17,7 @@ BOLD='\033[1m'
 
 # GitHub raw URL base
 GITHUB_RAW_BASE="https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach"
+GITHUB_RAW_ROOT="https://raw.githubusercontent.com/ai-focused/kris-base/main"
 
 # Clear screen and show banner
 clear
@@ -150,6 +151,39 @@ else
     exit 1
 fi
 
+# Download KRIS UI
+echo ""
+echo -e "${CYAN}Downloading KRIS UI...${NC}"
+
+KRIS_UI_DIR="memory-bank/kris-ui"
+KRIS_UI_FILES=(
+    "kris-ui.py"
+    "requirements.txt"
+    "templates/index.html"
+    "static/css/style.css"
+    "static/js/kris-ui.js"
+)
+
+# Create directory structure
+mkdir -p "$KRIS_UI_DIR/templates" "$KRIS_UI_DIR/static/css" "$KRIS_UI_DIR/static/js"
+
+kris_ui_ok=true
+for file in "${KRIS_UI_FILES[@]}"; do
+    url="${GITHUB_RAW_ROOT}/kris-ui/${file}"
+    dest="${KRIS_UI_DIR}/${file}"
+    if command -v curl &> /dev/null; then
+        curl -fsSL "$url" -o "$dest" 2>/dev/null || { echo -e "${RED}  ✗ Failed: ${file}${NC}"; kris_ui_ok=false; }
+    elif command -v wget &> /dev/null; then
+        wget -q "$url" -O "$dest" 2>/dev/null || { echo -e "${RED}  ✗ Failed: ${file}${NC}"; kris_ui_ok=false; }
+    fi
+done
+
+if $kris_ui_ok; then
+    echo -e "${GREEN}✓ KRIS UI downloaded (${#KRIS_UI_FILES[@]} files)${NC}"
+else
+    echo -e "${YELLOW}⚠ Some KRIS UI files failed to download. You can re-run the installer later.${NC}"
+fi
+
 # Success message and next steps
 echo ""
 echo -e "${GREEN}${BOLD}╭──────────────────────────────────────────────────────────────╮${NC}"
@@ -167,6 +201,9 @@ echo -e "     • Auto-detect your project (if existing files found)"
 echo -e "     • Guide you through the setup questionnaire"
 echo -e "     • Help you choose the best options for your project"
 echo -e "     • Create the complete KRIS structure"
+echo ""
+echo -e "  ${GREEN}KRIS UI:${NC} After setup, start the visual doc browser with:"
+echo -e "     ${CYAN}cd memory-bank/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python3 kris-ui.py${NC}"
 echo ""
 echo -e "  ${GREEN}Remember:${NC} All choices can be changed later via prompting or"
 echo -e "  by editing the generated files directly."

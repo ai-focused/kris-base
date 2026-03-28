@@ -6,6 +6,7 @@ $ErrorActionPreference = "Stop"
 
 # GitHub raw URL base
 $GITHUB_RAW_BASE = "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach"
+$GITHUB_RAW_ROOT = "https://raw.githubusercontent.com/ai-focused/kris-base/main"
 
 # Clear screen and show banner
 Clear-Host
@@ -123,6 +124,42 @@ try {
     exit 1
 }
 
+# Download KRIS UI
+Write-Host ""
+Write-Host "Downloading KRIS UI..." -ForegroundColor Cyan
+
+$KRIS_UI_DIR = "memory-bank\kris-ui"
+$KRIS_UI_FILES = @(
+    "kris-ui.py",
+    "requirements.txt",
+    "templates/index.html",
+    "static/css/style.css",
+    "static/js/kris-ui.js"
+)
+
+# Create directory structure
+New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates" | Out-Null
+New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\static\css" | Out-Null
+New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\static\js" | Out-Null
+
+$kris_ui_ok = $true
+foreach ($file in $KRIS_UI_FILES) {
+    $url = "$GITHUB_RAW_ROOT/kris-ui/$file"
+    $dest = "$KRIS_UI_DIR\$($file -replace '/', '\')"
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
+    } catch {
+        Write-Host "  ✗ Failed: $file" -ForegroundColor Red
+        $kris_ui_ok = $false
+    }
+}
+
+if ($kris_ui_ok) {
+    Write-Host "✓ KRIS UI downloaded ($($KRIS_UI_FILES.Count) files)" -ForegroundColor Green
+} else {
+    Write-Host "⚠ Some KRIS UI files failed to download. You can re-run the installer later." -ForegroundColor Yellow
+}
+
 # Success message and next steps
 Write-Host ""
 Write-Host "╭──────────────────────────────────────────────────────────────╮" -ForegroundColor Green
@@ -140,6 +177,9 @@ Write-Host "     • Auto-detect your project (if existing files found)"
 Write-Host "     • Guide you through the setup questionnaire"
 Write-Host "     • Help you choose the best options for your project"
 Write-Host "     • Create the complete KRIS structure"
+Write-Host ""
+Write-Host "  KRIS UI: After setup, start the visual doc browser with:" -ForegroundColor Green
+Write-Host "     cd memory-bank\kris-ui; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt; .venv\Scripts\python kris-ui.py" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Remember: All choices can be changed later via prompting or" -ForegroundColor Green
 Write-Host "  by editing the generated files directly."

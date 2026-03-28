@@ -12,7 +12,7 @@ Show KRIS welcome banner, credits, project status, and available commands.
 │  Contact: alex@scaledagile.pro                               │
 │  Documentation: https://github.com/ai-focused/kris-base      │
 │                                                              │
-│  KRIS Version: 2.3                                           │
+│  KRIS Version: 2.5                                           │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
@@ -54,7 +54,35 @@ Extract:
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-### 5. Show Available Commands
+### 5. KRIS UI Status
+
+Check if KRIS UI is installed:
+```bash
+ls memory-bank/kris-ui/kris-ui.py 2>/dev/null
+```
+
+If installed, show:
+```
+╭──────────────────────────────────────────────────────────────╮
+│  KRIS UI: Installed                                          │
+│  Start:   cd memory-bank/kris-ui && .venv/bin/python3 kris-ui.py │
+│  URL:     http://localhost:5111                               │
+╰──────────────────────────────────────────────────────────────╯
+```
+
+Check if venv exists (`memory-bank/kris-ui/.venv/`). If not, suggest first-time setup:
+```
+  First time? Run:
+    cd memory-bank/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
+
+If NOT installed, suggest:
+```
+  KRIS UI not found. Install with /kris-upgrade or download manually from:
+  https://github.com/ai-focused/kris-base/tree/main/kris-ui
+```
+
+### 6. Show Available Commands
 
 | Command | Description |
 |---------|-------------|
@@ -67,7 +95,7 @@ Extract:
 | /kris-compact | Optimize ring content |
 | /kris-query <ring> <topic> | Search ring content |
 
-### 6. Ask for Next Steps
+### 7. Ask for Next Steps
 
 After displaying status, ask:
 "What would you like to work on next?"
@@ -76,3 +104,4 @@ Suggest options based on:
 - Incomplete tasks from activeContext.md
 - Next milestones from progress.md
 - Any blockers that need resolution
+- Starting KRIS UI if not already running (saves context tokens)
