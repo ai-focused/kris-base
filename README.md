@@ -115,7 +115,7 @@ After installation, these slash commands are available in Claude Code:
 - **stable** - Recommended for most users (tested, reliable)
 - **latest** - Bleeding edge (may have experimental features)
 
-Current version: **2.5**
+Current version: **2.6**
 
 ## Author
 

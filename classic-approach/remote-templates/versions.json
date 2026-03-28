@@ -1,20 +1,24 @@
 {
   "current": {
-    "stable": "2.5",
-    "latest": "2.5"
+    "stable": "2.6",
+    "latest": "2.6"
   },
   "versions": {
-    "2.5": {
+    "2.6": {
       "date": "2026-03-28",
       "channel": ["stable", "latest"],
       "changelog": [
-        "KRIS UI — local web viewer for browsing KRIS documentation",
-        "Installer downloads kris-ui files (kris-ui.py, CSS, JS, HTML template)",
-        "/kris-upgrade now updates KRIS UI files alongside CLAUDE.md and commands",
-        "/kris command shows KRIS UI install status and start instructions",
-        "/kris-status, /kris-query, /kris-compact exclude kris-ui/ from ring analysis",
-        "Phase 0 refactor: kris-ui extracted from monolith into clean multi-file structure",
-        "CLAUDE.md.base includes KRIS UI section with start commands"
+        "Interactive template engine — add 'interactive: template-name' frontmatter to enable interactive views",
+        "dependency-graph template — module node graph with BFS layout, click-to-select, dependency highlighting",
+        "flow-diagram template — horizontal swimlane steps with module chips and cross-flow highlighting",
+        "Light/dark theme toggle with localStorage persistence",
+        "Multi-template support — documents can tag multiple templates, shown as separate toggle buttons",
+        "Project name shown in header, browser tab, and breadcrumb",
+        "kris-ui.md authoring guide for interactive-compatible markdown",
+        "/kris-update checks for interactive template tagging opportunities",
+        "/kris-upgrade rewritten: two-step bootstrap + AI-assisted smart CLAUDE.md merge",
+        "Shared base layer (interactive-base.css, interactive-base.js, base.html) for template development",
+        "Esc dismisses search match highlights"
       ],
       "files": {
         "base": "CLAUDE.md.base",
@@ -29,12 +33,37 @@
         ],
         "kris_ui": [
           "kris-ui/kris-ui.py",
+          "kris-ui/kris-ui.md",
           "kris-ui/requirements.txt",
           "kris-ui/templates/index.html",
           "kris-ui/static/css/style.css",
-          "kris-ui/static/js/kris-ui.js"
+          "kris-ui/static/css/interactive-base.css",
+          "kris-ui/static/js/kris-ui.js",
+          "kris-ui/static/js/interactive-base.js",
+          "kris-ui/templates/interactive/base.html",
+          "kris-ui/templates/interactive/dependency-graph/manifest.json",
+          "kris-ui/templates/interactive/dependency-graph/template.html",
+          "kris-ui/templates/interactive/dependency-graph/format.md",
+          "kris-ui/templates/interactive/flow-diagram/manifest.json",
+          "kris-ui/templates/interactive/flow-diagram/template.html",
+          "kris-ui/templates/interactive/flow-diagram/format.md"
         ]
       }
+    },
+    "2.5": {
+      "date": "2026-03-28",
+      "channel": ["archived"],
+      "changelog": [
+        "KRIS UI — local web viewer for browsing KRIS documentation",
+        "Installer downloads kris-ui files (kris-ui.py, CSS, JS, HTML template)",
+        "/kris-upgrade now updates KRIS UI files alongside CLAUDE.md and commands",
+        "/kris command shows KRIS UI install status and start instructions",
+        "/kris-status, /kris-query, /kris-compact exclude kris-ui/ from ring analysis",
+        "Phase 0 refactor: kris-ui extracted from monolith into clean multi-file structure",
+        "CLAUDE.md.base includes KRIS UI section with start commands"
+      ],
+      "deprecated": true,
+      "upgrade_to": "2.6"
     },
     "2.4": {
       "date": "2024-12-18",
@@ -48,7 +77,7 @@
         "All shell examples use Unix syntax with translation note for Windows"
       ],
       "deprecated": true,
-      "upgrade_to": "2.5"
+      "upgrade_to": "2.6"
     },
     "2.3": {
       "date": "2024-12-17",
@@ -62,7 +91,7 @@
         "Token budgets: Core 15k, Inner 30k, Middle 50k/file"
       ],
       "deprecated": true,
-      "upgrade_to": "2.5"
+      "upgrade_to": "2.6"
     },
     "2.2": {
       "date": "2024-12-15",
@@ -75,7 +104,7 @@
         "Token budgets: Core 15k, Inner 30k, Middle 50k/file"
       ],
       "deprecated": true,
-      "upgrade_to": "2.5"
+      "upgrade_to": "2.6"
     },
     "2.1": {
       "date": "2024-12-15",
@@ -86,7 +115,7 @@
         "Framework detection from dependencies"
       ],
       "deprecated": true,
-      "upgrade_to": "2.5"
+      "upgrade_to": "2.6"
     },
     "2.0": {
       "date": "2024-12-15",
@@ -97,7 +126,7 @@
         "Metadata-first approach"
       ],
       "deprecated": true,
-      "upgrade_to": "2.5"
+      "upgrade_to": "2.6"
     }
   },
   "minimum_supported": "2.0",

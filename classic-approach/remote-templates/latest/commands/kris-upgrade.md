@@ -7,125 +7,193 @@ Usage:
 
 ## Instructions
 
-### UPGRADE PROCESS
+### UPGRADE PROCESS — TWO-STEP BOOTSTRAP
+
+The upgrade runs in two steps for safety. Step 1 upgrades the upgrade command itself, then Step 2 runs the new version to handle everything else. This ensures security fixes and process improvements are always applied before the upgrade runs.
+
+---
+
+### STEP 1 — BOOTSTRAP (upgrade the upgrader)
 
 1. **Check current version**
    Read first 50 lines of CLAUDE.md, find "KRIS Version: X.Y"
 
-2. **Check available versions**
-   Fetch version info from:
-   `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/versions.json`
-
-   If fetch fails, inform user and provide manual upgrade instructions.
+2. **Fetch version info**
+   ```bash
+   curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/versions.json"
+   ```
+   If fetch fails → show error and stop. Do NOT proceed without version data.
 
 3. **Compare versions**
-   If already on latest, inform user: "Already on KRIS vX.Y (latest)"
-   If upgrade available, show what's new (if changelog available)
+   If already on latest: "Already on KRIS vX.Y (latest)" → stop.
+   If upgrade available: show changelog for all versions between current and target.
+
+   ```
+   ╭──────────────────────────────────────────────────────────────╮
+   │  KRIS Upgrade Available: vX.Y → vZ.W                        │
+   ├──────────────────────────────────────────────────────────────┤
+   │  What's new in vZ.W:                                        │
+   │    • [changelog item 1]                                      │
+   │    • [changelog item 2]                                      │
+   │    • ...                                                     │
+   ╰──────────────────────────────────────────────────────────────╯
+   ```
 
 4. **Get user confirmation**
    Ask: "Upgrade from vX.Y to vZ.W? [y/N]"
 
-5. **Backup current CLAUDE.md**
+5. **Download the NEW kris-upgrade command FIRST**
+   Determine channel from argument (default: stable, "latest" → latest):
    ```bash
-   cp CLAUDE.md "CLAUDE.loves.KRIS.vX.Y.md.backup"
-   ```
-   Where X.Y is the current version number.
-
-6. **Add upgrade notice to current CLAUDE.md**
-   Before downloading new version, append to current CLAUDE.md:
-   ```markdown
-
-   ---
-
-   ## UPGRADE IN PROGRESS
-
-   Upgrading KRIS from vX.Y to vZ.W...
-
-   If something goes wrong, revert with:
-   ```
-   /kris-upgrade X.Y
+   curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/commands/kris-upgrade.md" > .claude/commands/kris-upgrade.md
    ```
 
-   Or manually restore from: `CLAUDE.loves.KRIS.vX.Y.md.backup`
+6. **Verify the download**
+   Read the downloaded file. If it's less than 50 lines → download failed. Restore original and stop.
 
-   ---
+7. **Hand off to the new upgrade command**
+   Tell the user:
    ```
+   ╭──────────────────────────────────────────────────────────────╮
+   │  Step 1 complete — upgrade command updated.                  │
+   │                                                              │
+   │  Now run /kris-upgrade again to complete the upgrade.        │
+   │  The new upgrade command will handle everything else.        │
+   ╰──────────────────────────────────────────────────────────────╯
+   ```
+   STOP here. Do NOT continue to Step 2 in the same invocation.
 
-7. **Fetch new CLAUDE.md.base**
-   Download from:
-   `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable/CLAUDE.md.base`
+---
 
-8. **Preserve project-specific data**
-   From current CLAUDE.md, extract and preserve:
-   - Project name (from title)
-   - One-line description
-   - Target audience
-   - Current Focus items (if modified)
-   - Essential Commands (if filled in)
-   - Any custom sections
+### STEP 2 — MAIN UPGRADE (runs with the NEW command)
 
-9. **Merge data into new template**
-   Replace placeholders in new template with preserved data
+When `/kris-upgrade` is invoked a second time after the bootstrap, the version check will still show an upgrade is needed (CLAUDE.md hasn't changed yet). Proceed:
 
-10. **Fetch updated commands**
-    Download all command files to .claude/commands/
+#### 2.1 Backup
 
-11. **Update KRIS UI**
-    Download latest KRIS UI files to `memory-bank/kris-ui/`:
-    ```bash
-    mkdir -p memory-bank/kris-ui/templates/interactive/dependency-graph memory-bank/kris-ui/templates/interactive/flow-diagram memory-bank/kris-ui/static/css memory-bank/kris-ui/static/js
-    ```
+```bash
+cp CLAUDE.md "CLAUDE.loves.KRIS.vX.Y.md.backup"
+```
 
-    Download all files (use `curl -s` for each):
-    - `kris-ui/kris-ui.py`
-    - `kris-ui/kris-ui.md`
-    - `kris-ui/requirements.txt`
-    - `kris-ui/templates/index.html`
-    - `kris-ui/static/css/style.css`
-    - `kris-ui/static/css/interactive-base.css`
-    - `kris-ui/static/js/kris-ui.js`
-    - `kris-ui/static/js/interactive-base.js`
-    - `kris-ui/templates/interactive/base.html`
-    - `kris-ui/templates/interactive/dependency-graph/manifest.json`
-    - `kris-ui/templates/interactive/dependency-graph/template.html`
-    - `kris-ui/templates/interactive/dependency-graph/format.md`
-    - `kris-ui/templates/interactive/flow-diagram/manifest.json`
-    - `kris-ui/templates/interactive/flow-diagram/template.html`
-    - `kris-ui/templates/interactive/flow-diagram/format.md`
+If backup file already exists, append timestamp:
+`CLAUDE.loves.KRIS.v2.4.20260328-143022.md.backup`
 
-    Base URL: `https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/`
-    Download pattern: `curl -s "${BASE_URL}${file}" > "memory-bank/kris-ui/${file}"`
+#### 2.2 Download all command files
 
-    If `memory-bank/kris-ui/.venv` exists, also update dependencies:
-    ```bash
-    cd memory-bank/kris-ui && .venv/bin/pip install -q -r requirements.txt
-    ```
+```bash
+mkdir -p .claude/commands
+```
 
-    If kris-ui was not previously installed, inform user:
-    ```
-    KRIS UI installed! Start it with:
-      cd memory-bank/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python3 kris-ui.py
-    ```
+Download ALL commands (the bootstrap already updated kris-upgrade, but re-download to be safe):
+- `kris.md`, `kris-status.md`, `kris-update.md`, `kris-upgrade.md`
+- `kris-archive.md`, `kris-compact.md`, `kris-query.md`
 
-12. **Write new CLAUDE.md**
-    Replace current file with merged content
+Base URL: `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/commands/`
 
-13. **Verify success**
-    Read new CLAUDE.md, confirm version updated
+#### 2.3 Download KRIS UI files
 
-14. **Report completion**
-    ```
-    ╭──────────────────────────────────────────────────────────────╮
-    │  ✓ KRIS Upgrade Complete!                                    │
-    ├──────────────────────────────────────────────────────────────┤
-    │  Previous: vX.Y                                              │
-    │  Current:  vZ.W                                              │
-    │  Backup:   CLAUDE.loves.KRIS.vX.Y.md.backup                  │
-    │  KRIS UI:  Updated (memory-bank/kris-ui/)                    │
-    ╰──────────────────────────────────────────────────────────────╯
+```bash
+mkdir -p memory-bank/kris-ui/templates/interactive/dependency-graph memory-bank/kris-ui/templates/interactive/flow-diagram memory-bank/kris-ui/static/css memory-bank/kris-ui/static/js
+```
 
-    To revert: /kris-upgrade X.Y
-    ```
+Download all files from `https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/`:
+- `kris-ui.py`, `kris-ui.md`, `requirements.txt`
+- `templates/index.html`
+- `static/css/style.css`, `static/css/interactive-base.css`
+- `static/js/kris-ui.js`, `static/js/interactive-base.js`
+- `templates/interactive/base.html`
+- `templates/interactive/dependency-graph/manifest.json`, `template.html`, `format.md`
+- `templates/interactive/flow-diagram/manifest.json`, `template.html`, `format.md`
+
+If `memory-bank/kris-ui/.venv` exists, update dependencies:
+```bash
+cd memory-bank/kris-ui && .venv/bin/pip install -q -r requirements.txt
+```
+
+#### 2.4 Smart CLAUDE.md merge (AI-assisted, NOT mechanical replacement)
+
+⚠️ **CRITICAL: Do NOT replace CLAUDE.md with the new template.** The user's CLAUDE.md has evolved and contains project-specific content that must be preserved.
+
+**2.4.1** Download the new template to a temp location:
+```bash
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/CLAUDE.md.base" > .kris-temp-template.md
+```
+
+**2.4.2** Read the changelog from `versions.json` for all versions between current and target. This tells you WHAT changed and WHY.
+
+**2.4.3** Read the user's current CLAUDE.md (the real one, not the backup).
+
+**2.4.4** Read the new template (`.kris-temp-template.md`).
+
+**2.4.5** Analyze and propose changes. Compare the two documents and identify:
+
+- **NEW sections** in the template that don't exist in the user's CLAUDE.md → propose ADDING them
+- **UPDATED template sections** where the user's version still matches the OLD template → safe to UPDATE
+- **USER-CUSTOMIZED sections** where the user has modified the original template content → PRESERVE, do not touch
+- **VERSION references** (header, credits) → UPDATE to new version
+- **REMOVED sections** from old template → WARN but don't remove (user may have added content to them)
+
+**2.4.6** Present the merge plan to the user:
+
+```
+╭──────────────────────────────────────────────────────────────╮
+│  KRIS v2.4 → v2.6 — CLAUDE.md Merge Plan                    │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ADD (new in v2.6):                                          │
+│    • Section "## KRIS Memory Bank UI" (after KRIS Commands)  │
+│    • Reference to kris-ui.md for interactive doc authoring    │
+│                                                              │
+│  UPDATE (unchanged from v2.4 template, safe to update):      │
+│    • Version references: v2.4 → v2.6                         │
+│    • KRIS Credits box: version number                         │
+│                                                              │
+│  PRESERVE (you customized these, not touching them):         │
+│    • "## Essential Commands" (has real commands)              │
+│    • "## Current Focus" (3 active items)                     │
+│    • Custom section: "## API Conventions"                    │
+│    • Custom section: "## Team Agreements"                    │
+│                                                              │
+│  REVIEW (template changed, but you also modified):           │
+│    • "## KRIS Commands" table — new entries available.       │
+│      Your version has custom entries. Merge manually?        │
+│                                                              │
+╰──────────────────────────────────────────────────────────────╯
+
+Apply ADD + UPDATE changes? [y/N]
+Review REVIEW items individually? [r]
+Show full new template for comparison? [t]
+```
+
+**2.4.7** Apply only the approved changes using the Edit tool. Each change is a targeted edit, not a file replacement.
+
+**2.4.8** Clean up:
+```bash
+rm -f .kris-temp-template.md
+```
+
+#### 2.5 Report completion
+
+```
+╭──────────────────────────────────────────────────────────────╮
+│  ✓ KRIS Upgrade Complete!                                    │
+├──────────────────────────────────────────────────────────────┤
+│  Previous: vX.Y                                              │
+│  Current:  vZ.W                                              │
+│  Backup:   CLAUDE.loves.KRIS.vX.Y.md.backup                  │
+│                                                              │
+│  Updated:                                                    │
+│    • Commands: 7 files in .claude/commands/                   │
+│    • KRIS UI: 15 files in memory-bank/kris-ui/               │
+│    • CLAUDE.md: [N] sections added, [M] updated              │
+│                                                              │
+│  Preserved:                                                  │
+│    • [N] customized sections unchanged                       │
+│    • [M] items flagged for manual review                     │
+╰──────────────────────────────────────────────────────────────╯
+
+To revert: /kris-upgrade X.Y
+```
 
 ---
 
@@ -138,12 +206,16 @@ Usage:
    ```
    Backup for vX.Y not found.
    Available backups:
-   - CLAUDE.loves.KRIS.v2.2.md.backup
-   - CLAUDE.loves.KRIS.v2.3.md.backup
+   ```
+   ```bash
+   ls -la CLAUDE.loves.KRIS.*.md.backup 2>/dev/null
    ```
 
 2. **Get user confirmation**
    Ask: "Revert to vX.Y from backup? Current CLAUDE.md will be replaced. [y/N]"
+
+   ⚠️ Reverting CLAUDE.md does NOT revert commands or KRIS UI files.
+   Those remain at the latest version. Only CLAUDE.md is affected.
 
 3. **Backup current before revert**
    ```bash
@@ -163,6 +235,9 @@ Usage:
    │  Restored: vX.Y                                              │
    │  Previous (vZ.W) backed up to:                               │
    │    CLAUDE.loves.KRIS.vZ.W.md.backup                          │
+   │                                                              │
+   │  Note: Commands and KRIS UI are still at vZ.W.               │
+   │  Run /kris-upgrade to re-upgrade if needed.                   │
    ╰──────────────────────────────────────────────────────────────╯
    ```
 
@@ -172,10 +247,7 @@ Usage:
 
 Format: `CLAUDE.loves.KRIS.vX.Y.md.backup`
 
-Examples:
-- `CLAUDE.loves.KRIS.v2.2.md.backup`
-- `CLAUDE.loves.KRIS.v2.3.md.backup`
-- `CLAUDE.loves.KRIS.v3.0.md.backup`
+If file exists, append timestamp: `CLAUDE.loves.KRIS.v2.4.20260328-143022.md.backup`
 
 List available backups:
 ```bash
@@ -186,18 +258,30 @@ ls -la CLAUDE.loves.KRIS.*.md.backup 2>/dev/null
 
 ### ERROR HANDLING
 
-**If fetch fails:**
+**If version fetch fails:**
 ```
-Unable to fetch update from GitHub.
+Unable to fetch version info from GitHub.
 
 Manual upgrade:
-1. Download CLAUDE.md.base from:
-   https://github.com/ai-focused/kris-base/tree/main/classic-approach/remote-templates/stable
-2. Replace placeholders with your project info
-3. Copy to your project as CLAUDE.md
+1. Visit: https://github.com/ai-focused/kris-base
+2. Download latest commands and KRIS UI files
+3. Review the new CLAUDE.md.base template for changes to merge
 
-Your current CLAUDE.md has NOT been modified.
+Your CLAUDE.md has NOT been modified.
 ```
 
-**If backup already exists:**
-Append timestamp: `CLAUDE.loves.KRIS.v2.2.20231217-143022.md.backup`
+**If any file download fails during Step 2:**
+Continue with remaining files. Report which files failed. The upgrade is still usable — failed files can be re-downloaded by running `/kris-upgrade` again.
+
+**If the user's CLAUDE.md doesn't have a recognizable KRIS version:**
+Ask: "I can't detect your current KRIS version. What version are you upgrading from?"
+
+---
+
+### SECURITY NOTES
+
+- ALWAYS download kris-upgrade.md FIRST (Step 1 bootstrap) so security patches to the upgrade process itself are applied before any other actions.
+- NEVER execute downloaded content — command files are markdown prompts read by Claude, not scripts.
+- ALWAYS verify downloaded files are non-empty before overwriting existing files.
+- ALWAYS create a backup before modifying CLAUDE.md.
+- NEVER skip the user confirmation step, even if the upgrade is minor.

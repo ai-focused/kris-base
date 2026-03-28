@@ -1,6 +1,6 @@
 # Welcome to {PROJECT_NAME}!
 
-> **We're using KRIS** (Knowledge Rings Information System) v2.5
+> **We're using KRIS** (Knowledge Rings Information System) v2.6
 > Type `/kris` for commands | `/kris-status` for ring health
 
 ---
@@ -293,10 +293,10 @@ Run `/kris-status` to check usage.
 │  KRIS - Knowledge Rings Information System                   │
 │  Created by: Alexandru Negrila (alex@scaledagile.pro)        │
 │  Documentation: https://github.com/ai-focused/kris-base      │
-│  KRIS Version: 2.5                                           │
+│  KRIS Version: 2.6                                           │
 ╰──────────────────────────────────────────────────────────────╯
 
 ---
 
 *Last Updated: {CURRENT_DATE}*
-*KRIS Version: 2.5*
+*KRIS Version: 2.6*
