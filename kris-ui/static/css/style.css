@@ -107,13 +107,22 @@ body {
   gap: 8px;
   white-space: nowrap;
 }
-.logo-ring {
+.logo-img {
   width: 28px; height: 28px;
   border-radius: 50%;
-  border: 2.5px solid var(--core-color);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; color: var(--core-color);
-  box-shadow: 0 0 8px rgba(212,168,67,.25);
+  object-fit: contain;
+}
+.logo-sep {
+  color: var(--border-light);
+  font-weight: 300;
+  font-size: 18px;
+  margin: 0 4px;
+  opacity: 0.5;
+}
+.logo-project-img {
+  width: 24px; height: 24px;
+  border-radius: 4px;
+  object-fit: contain;
 }
 .logo span { color: var(--text-secondary); font-weight: 400; font-size: 12px; }
 .header-spacer { flex: 1; }
@@ -529,17 +538,180 @@ kbd {
 }
 .breadcrumb .sep { opacity: .4; }
 .welcome-state {
+  color: var(--text-muted);
+  overflow-y: auto;
+  height: 100%;
+}
+.welcome-dashboard {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+/* Hero */
+.welcome-hero {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.welcome-logos {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 60vh;
-  color: var(--text-muted);
-  text-align: center;
+  gap: 12px;
+  margin-bottom: 16px;
 }
-.welcome-state .big-icon { font-size: 48px; margin-bottom: 16px; opacity: .3; }
-.welcome-state h2 { font-weight: 400; font-size: 18px; margin-bottom: 8px; color: var(--text-secondary); }
-.welcome-state p { font-size: 13px; }
+.welcome-logos-sep {
+  font-size: 32px;
+  color: var(--border-light);
+  font-weight: 200;
+  opacity: 0.4;
+}
+.welcome-logo {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 20px rgba(124,92,255,.2));
+}
+.welcome-project-logo {
+  border-radius: 12px;
+}
+.welcome-hero h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+.welcome-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* Ring visualization */
+.welcome-rings {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.ring-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.ring-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,.2);
+}
+.ring-card-glow {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.ring-card-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+  display: block;
+}
+.ring-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.ring-card-files {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.ring-card-bar {
+  height: 4px;
+  background: var(--bg-hover);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.ring-card-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width .5s ease;
+}
+.ring-card-pct {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+/* Activity sections */
+.welcome-activity {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.welcome-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+.welcome-section h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.welcome-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.welcome-item:last-child { border-bottom: none; }
+.welcome-item-icon {
+  flex-shrink: 0;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.welcome-item-text {
+  flex: 1;
+  line-height: 1.4;
+}
+.welcome-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 8px 0;
+}
+.welcome-loading {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 0;
+}
+.welcome-link {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  color: var(--accent);
+  text-decoration: none;
+  margin-top: 8px;
+  font-weight: 500;
+}
+.welcome-link:hover { text-decoration: underline; }
 
 /* --- Rendered Markdown --- */
 .md-body h1 { font-size: 24px; font-weight: 700; margin: 0 0 16px; letter-spacing: -0.5px; }

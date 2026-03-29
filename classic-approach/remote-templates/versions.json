@@ -1,24 +1,21 @@
 {
   "current": {
-    "stable": "3.0",
-    "latest": "3.0"
+    "stable": "3.1",
+    "latest": "3.1"
   },
   "versions": {
-    "3.0": {
+    "3.1": {
       "date": "2026-03-29",
       "channel": ["stable", "latest"],
       "changelog": [
-        "Multi-agent support — AGENTS.md + .kris/tasks/ for Codex, Cursor, Copilot, Windsurf",
-        "7 KRIS tasks in agent-agnostic TASK/INPUTS/REQUIREMENTS/OUTPUT/CONSTRAINTS format",
-        "AGENTS.md.base template with non-destructive install (prepend, never overwrite)",
-        "AGENTS.md shown in Core Ring alongside CLAUDE.md with root badge",
-        ".claude/commands/ and .kris/tasks/ browsable in KRIS UI sidebar",
-        "Commands and Tasks folders collapsed by default in sidebar",
-        "Placeholder shown when no commands or tasks are installed",
-        "entity-relationship template — interactive ER diagrams with draggable tables",
-        "Drag & drop on dependency-graph and entity-relationship templates",
-        "Network-accessible KRIS UI (0.0.0.0 bind, override with KRIS_UI_HOST)",
-        "Python 3.7+ compatibility (typing.Optional instead of union syntax)"
+        "KRIS logo replaces CSS ring in header — favicon.ico for browser tabs",
+        "Project branding — Logo path from CLAUDE.md frontmatter, shown alongside KRIS logo",
+        "Header layout: [KRIS logo] KRIS | [project logo] Project Name",
+        "Welcome dashboard — ring cards with live token budget bars, achievements, next steps",
+        "Dashboard parses progress.md for completed tasks and pending items",
+        "Home button + H keyboard shortcut — refreshes ring data live, no restart needed",
+        "Project name parsed from CLAUDE.md title line, fallback to folder name",
+        "/api/project-logo route serves project logo with path validation"
       ],
       "files": {
         "base": "CLAUDE.md.base",
@@ -50,6 +47,8 @@
           "kris-ui/static/css/interactive-base.css",
           "kris-ui/static/js/kris-ui.js",
           "kris-ui/static/js/interactive-base.js",
+          "kris-ui/static/img/kris-logo.png",
+          "kris-ui/static/img/favicon.ico",
           "kris-ui/templates/interactive/base.html",
           "kris-ui/templates/interactive/dependency-graph/manifest.json",
           "kris-ui/templates/interactive/dependency-graph/template.html",
@@ -62,6 +61,25 @@
           "kris-ui/templates/interactive/entity-relationship/format.md"
         ]
       }
+    },
+    "3.0": {
+      "date": "2026-03-29",
+      "channel": ["archived"],
+      "changelog": [
+        "Multi-agent support — AGENTS.md + .kris/tasks/ for Codex, Cursor, Copilot, Windsurf",
+        "7 KRIS tasks in agent-agnostic TASK/INPUTS/REQUIREMENTS/OUTPUT/CONSTRAINTS format",
+        "AGENTS.md.base template with non-destructive install (prepend, never overwrite)",
+        "AGENTS.md shown in Core Ring alongside CLAUDE.md with root badge",
+        ".claude/commands/ and .kris/tasks/ browsable in KRIS UI sidebar",
+        "Commands and Tasks folders collapsed by default in sidebar",
+        "Placeholder shown when no commands or tasks are installed",
+        "entity-relationship template — interactive ER diagrams with draggable tables",
+        "Drag & drop on dependency-graph and entity-relationship templates",
+        "Network-accessible KRIS UI (0.0.0.0 bind, override with KRIS_UI_HOST)",
+        "Python 3.7+ compatibility (typing.Optional instead of union syntax)"
+      ],
+      "deprecated": true,
+      "upgrade_to": "3.1"
     },
     "2.6": {
       "date": "2026-03-28",

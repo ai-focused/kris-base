@@ -38,12 +38,120 @@ async function init() {
   const metaList = await metaRes.json();
   metaList.forEach(m => { interactiveMeta[m.path] = m.interactive; });
   renderRingNav();
+  renderWelcomeDashboard();
   // URL state
   const params = new URLSearchParams(location.search);
   const ring = params.get('ring') || 'core';
   const file = params.get('file');
   selectRing(ring);
   if (file) selectFile(file);
+}
+
+// --- Welcome dashboard ---
+function renderWelcomeDashboard() {
+  const container = document.getElementById('welcome-rings');
+  if (!container) return;
+
+  const ringIcons = { core: '📍', inner: '🔄', middle: '📚', outer: '📦' };
+
+  // Ring cards with budget visualization
+  container.innerHTML = RING_ORDER.map(name => {
+    const r = ringsData[name];
+    const stats = r.stats;
+    const pct = stats.budget_pct || 0;
+    const budgetLabel = stats.budget_tokens ? `${Math.round(stats.total_tokens/1000)}k / ${Math.round(stats.budget_tokens/1000)}k` : `${Math.round(stats.total_tokens/1000)}k`;
+    const pctLabel = stats.budget_tokens ? `${pct}%` : 'unlimited';
+    let barColor = r.color;
+    if (pct > 80) barColor = '#ef4444';
+    else if (pct > 60) barColor = '#f59e0b';
+
+    return `<div class="ring-card" onclick="selectRing('${name}')">
+      <div class="ring-card-glow" style="background:${r.color}"></div>
+      <span class="ring-card-icon">${ringIcons[name]}</span>
+      <div class="ring-card-name">${r.label}</div>
+      <div class="ring-card-files">${stats.file_count} file${stats.file_count !== 1 ? 's' : ''}</div>
+      ${stats.budget_tokens ? `<div class="ring-card-bar"><div class="ring-card-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div>` : '<div class="ring-card-bar"><div class="ring-card-fill" style="width:100%;background:var(--text-muted);opacity:0.2"></div></div>'}
+      <div class="ring-card-pct">${budgetLabel} ${stats.budget_tokens ? '(' + pctLabel + ')' : ''}</div>
+    </div>`;
+  }).join('');
+
+  // Load progress.md for achievements and next steps
+  loadProgressData();
+}
+
+async function loadProgressData() {
+  try {
+    const res = await fetch('/api/file?path=inner/progress.md');
+    if (!res.ok) throw new Error('not found');
+    const data = await res.json();
+    const raw = data.raw;
+
+    // Parse achievements (completed items)
+    const achievements = [];
+    const completedMatch = raw.match(/## Completed This Week[\s\S]*?(?=\n## |\n---|\Z)/);
+    if (completedMatch) {
+      const lines = completedMatch[0].split('\n');
+      lines.forEach(line => {
+        const m = line.match(/^[-*]\s+\[x\]\s+(.+)/i) || line.match(/^\|\s*\d{4}.*?\|\s*(.+?)\s*\|/);
+        if (m) achievements.push(m[1].replace(/\|/g, '').trim());
+      });
+    }
+    // Also look in completion history tables
+    if (achievements.length === 0) {
+      const historyMatch = raw.match(/## Completion History[\s\S]*?(?=\n## |\n---|\Z)/);
+      if (historyMatch) {
+        const rows = historyMatch[0].split('\n').filter(l => l.startsWith('|') && !l.includes('---') && !l.includes('Date'));
+        rows.slice(-5).forEach(row => {
+          const cells = row.split('|').map(c => c.trim()).filter(c => c);
+          if (cells.length >= 2) achievements.push(cells[1]);
+        });
+      }
+    }
+
+    // Parse next steps (incomplete items from milestones)
+    const nextSteps = [];
+    const lines = raw.split('\n');
+    lines.forEach(line => {
+      const m = line.match(/^[-*]\s+\[ \]\s+(.+)/);
+      if (m) nextSteps.push(m[1]);
+    });
+
+    // Render achievements
+    const achEl = document.getElementById('welcome-achievements');
+    if (achEl) {
+      let html = '<h3>&#x2705; Recent Achievements</h3>';
+      if (achievements.length > 0) {
+        html += achievements.slice(-5).map(a =>
+          `<div class="welcome-item"><span class="welcome-item-icon">&#x2713;</span><span class="welcome-item-text">${a}</span></div>`
+        ).join('');
+      } else {
+        html += '<div class="welcome-empty">No completed tasks yet</div>';
+      }
+      html += '<a class="welcome-link" href="#" onclick="event.preventDefault();selectRing(\'inner\');selectFile(\'inner/progress.md\')">View progress &#x2192;</a>';
+      achEl.innerHTML = html;
+    }
+
+    // Render next steps
+    const nextEl = document.getElementById('welcome-next-steps');
+    if (nextEl) {
+      let html = '<h3>&#x1F3AF; Next Steps</h3>';
+      if (nextSteps.length > 0) {
+        html += nextSteps.slice(0, 5).map(s =>
+          `<div class="welcome-item"><span class="welcome-item-icon">&#x25CB;</span><span class="welcome-item-text">${s}</span></div>`
+        ).join('');
+      } else {
+        html += '<div class="welcome-empty">No pending tasks</div>';
+      }
+      html += '<a class="welcome-link" href="#" onclick="event.preventDefault();selectRing(\'inner\');selectFile(\'inner/progress.md\')">View progress &#x2192;</a>';
+      nextEl.innerHTML = html;
+    }
+  } catch (e) {
+    // progress.md not found — show empty state
+    const achEl = document.getElementById('welcome-achievements');
+    if (achEl) achEl.innerHTML = '<h3>&#x2705; Recent Achievements</h3><div class="welcome-empty">No progress.md found</div>';
+    const nextEl = document.getElementById('welcome-next-steps');
+    if (nextEl) nextEl.innerHTML = '<h3>&#x1F3AF; Next Steps</h3><div class="welcome-empty">No progress.md found</div>';
+  }
 }
 
 // --- Ring navigation ---
@@ -673,6 +781,14 @@ document.addEventListener('keydown', function(e) {
     return;
   }
 
+  // "h": go home (dashboard)
+  if (key === 'h') {
+    e.preventDefault();
+    hideJumpBtn();
+    showHome();
+    return;
+  }
+
   // "c": jump to core/CLAUDE.md
   if (key === 'c') {
     e.preventDefault();
@@ -779,11 +895,37 @@ document.getElementById('content').addEventListener('click', function(e) {
 });
 
 // --- Interactive docs listing (in-content) ---
-let currentView = 'docs'; // 'docs' or 'interactive'
+let currentView = 'home'; // 'home' or 'docs' or 'interactive'
 
 function updateNavActive() {
+  const navHome = document.getElementById('nav-home');
+  if (navHome) navHome.classList.toggle('active', currentView === 'home');
   document.getElementById('nav-docs').classList.toggle('active', currentView === 'docs');
   document.getElementById('nav-interactive').classList.toggle('active', currentView === 'interactive');
+}
+
+async function showHome() {
+  currentView = 'home';
+  updateNavActive();
+  // Restore sidebar + meta panel
+  document.getElementById('sidebar').style.display = '';
+  document.getElementById('meta-panel').style.display = '';
+  document.getElementById('app').style.gridTemplateColumns = '260px 1fr 240px';
+  // Show welcome, hide file view
+  const view = document.getElementById('file-view');
+  const welcome = document.getElementById('welcome');
+  view.style.display = 'none';
+  welcome.style.display = '';
+  // Refresh ring data live
+  const res = await fetch('/api/rings');
+  ringsData = await res.json();
+  renderRingNav();
+  renderWelcomeDashboard();
+  // Reset meta panel
+  document.getElementById('meta-empty').style.display = '';
+  document.getElementById('meta-content').style.display = 'none';
+  // Update URL
+  history.replaceState(null, '', '?');
 }
 
 function showDocs() {

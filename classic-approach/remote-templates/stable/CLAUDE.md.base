@@ -1,7 +1,11 @@
 # Welcome to {PROJECT_NAME}!
 
-> **We're using KRIS** (Knowledge Rings Information System) v3.0
+> **We're using KRIS** (Knowledge Rings Information System) v3.1
 > Type `/kris` for commands | `/kris-status` for ring health
+
+**Logo**:
+
+> Update the **Logo** path above when your project has a logo (e.g., `memory-bank/core/logo.png`). KRIS UI displays it in the header and dashboard alongside the KRIS logo.
 
 ---
 
@@ -297,10 +301,10 @@ Run `/kris-status` to check usage.
 │  KRIS - Knowledge Rings Information System                   │
 │  Created by: Alexandru Negrila (alex@scaledagile.pro)        │
 │  Documentation: https://github.com/ai-focused/kris-base      │
-│  KRIS Version: 3.0                                           │
+│  KRIS Version: 3.1                                           │
 ╰──────────────────────────────────────────────────────────────╯
 
 ---
 
 *Last Updated: {CURRENT_DATE}*
-*KRIS Version: 3.0*
+*KRIS Version: 3.1*

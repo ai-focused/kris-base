@@ -135,7 +135,7 @@ In Claude Code, use `/kris-status`. In other agents, use `run kris-status` or re
 - **stable** - Recommended for most users (tested, reliable)
 - **latest** - Bleeding edge (may have experimental features)
 
-Current version: **3.0**
+Current version: **3.1**
 
 ## Author
 

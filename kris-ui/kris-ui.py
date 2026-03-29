@@ -14,7 +14,7 @@ import yaml
 
 from flask import Flask, jsonify, request, abort, Response, render_template
 
-KRIS_VERSION = "3.0"
+KRIS_VERSION = "3.1"
 import markdown
 from markdown.extensions.codehilite import CodeHiliteExtension
 from pygments.formatters import HtmlFormatter
@@ -600,17 +600,62 @@ def api_template_format():
     return jsonify({"html": render_markdown(content), "raw": content})
 
 
+def _parse_project_info() -> dict:
+    """Extract project name and logo path from CLAUDE.md."""
+    project_name = PROJECT_ROOT.name  # fallback: folder name
+    logo_path = None
+    if CLAUDE_MD_PATH.exists():
+        try:
+            content = CLAUDE_MD_PATH.read_text(encoding="utf-8", errors="replace")
+            # Parse project name from title: "# Welcome to ProjectName!"
+            title_match = re.search(r"^# Welcome to (.+?)!", content, re.MULTILINE)
+            if title_match:
+                project_name = title_match.group(1).strip()
+            # Parse logo from frontmatter: **Logo**: path/to/logo.png
+            for line in content.split("\n")[:20]:
+                logo_match = re.match(r"\*\*Logo\*\*:\s*(.+)", line.strip())
+                if logo_match:
+                    val = logo_match.group(1).strip()
+                    if val:
+                        logo_path = val
+                    break
+        except OSError:
+            pass
+    return {"name": project_name, "logo_path": logo_path}
+
+
+@app.route("/api/project-logo")
+def api_project_logo():
+    """Serve the project logo referenced in CLAUDE.md."""
+    info = _parse_project_info()
+    if not info["logo_path"]:
+        abort(404)
+    # Resolve relative to project root
+    logo_file = (PROJECT_ROOT / info["logo_path"]).resolve()
+    # Security: must be within project root
+    if not str(logo_file).startswith(str(PROJECT_ROOT)):
+        abort(403)
+    if not logo_file.exists():
+        abort(404)
+    # Detect content type
+    suffix = logo_file.suffix.lower()
+    content_types = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+                     ".svg": "image/svg+xml", ".ico": "image/x-icon", ".webp": "image/webp"}
+    ct = content_types.get(suffix, "application/octet-stream")
+    return Response(logo_file.read_bytes(), mimetype=ct)
+
+
 @app.route("/")
 def index():
-    # Project name = parent of memory-bank directory
-    project_name = MEMORY_BANK_ROOT.parent.name
+    info = _parse_project_info()
     return render_template(
         "index.html",
         pygments_css=PYGMENTS_CSS,
         kris_version=KRIS_VERSION,
         ring_order=RING_ORDER,
         rings_config=RINGS,
-        project_name=project_name,
+        project_name=info["name"],
+        has_project_logo=info["logo_path"] is not None,
         memory_bank_path=str(MEMORY_BANK_ROOT),
     )
 

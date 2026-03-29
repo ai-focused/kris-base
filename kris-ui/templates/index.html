@@ -8,16 +8,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>{{ pygments_css }}</style>
 <link rel="stylesheet" href="/static/css/style.css">
+<link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
 </head>
 <body>
 <div id="app">
   <!-- Header -->
   <div id="header">
-    <div class="logo">
-      <div class="logo-ring">K</div>
-      KRIS <span>{{ project_name }}</span>
+    <div class="logo" onclick="showHome()" style="cursor:pointer" title="Dashboard">
+      <img src="/static/img/kris-logo.png" alt="KRIS" class="logo-img">
+      KRIS
+      <span class="logo-sep">|</span>
+      {% if has_project_logo %}<img src="/api/project-logo" alt="" class="logo-project-img">{% endif %}
+      <span>{{ project_name }}</span>
     </div>
     <nav class="header-nav">
+      <a href="#" id="nav-home" onclick="event.preventDefault();showHome()">Home</a>
       <a href="#" id="nav-docs" class="active" onclick="event.preventDefault();showDocs()">Docs</a>
       <a href="#" id="nav-interactive" onclick="event.preventDefault();showInteractiveDocs()">Interactive</a>
     </nav>
@@ -45,6 +50,7 @@
       </div>
       <div class="shortcut-group">
         <div class="shortcut-group-label">Quick Access</div>
+        <div class="shortcut-row"><span class="desc">Home / Dashboard</span><kbd data-letter="h">h</kbd></div>
         <div class="shortcut-row"><span class="desc">Active Context</span><kbd data-letter="a">a</kbd></div>
         <div class="shortcut-row"><span class="desc">Progress</span><kbd data-letter="p">p</kbd></div>
         <div class="shortcut-row"><span class="desc">CLAUDE.md</span><kbd data-letter="c">c</kbd></div>
@@ -76,9 +82,30 @@
   <div id="content" tabindex="0">
     <button class="jump-btn" id="jump-btn" onclick="nextHit()" title="Next match (Enter)">&#x2193; Match</button>
     <div class="welcome-state" id="welcome">
-      <div class="big-icon">&#x25C9;</div>
-      <h2>{{ project_name }}</h2>
-      <p>Select a ring and file to start reading</p>
+      <div class="welcome-dashboard" id="welcome-dashboard">
+        <div class="welcome-hero">
+          <div class="welcome-logos">
+            <img src="/static/img/kris-logo.png" alt="KRIS" class="welcome-logo">
+            {% if has_project_logo %}
+            <span class="welcome-logos-sep">|</span>
+            <img src="/api/project-logo" alt="{{ project_name }}" class="welcome-logo welcome-project-logo">
+            {% endif %}
+          </div>
+          <h1>{{ project_name }}</h1>
+          <p class="welcome-subtitle">Knowledge Rings Information System</p>
+        </div>
+        <div class="welcome-rings" id="welcome-rings"></div>
+        <div class="welcome-activity" id="welcome-activity">
+          <div class="welcome-section" id="welcome-achievements">
+            <h3>Recent Achievements</h3>
+            <div class="welcome-loading">Loading...</div>
+          </div>
+          <div class="welcome-section" id="welcome-next-steps">
+            <h3>Next Steps</h3>
+            <div class="welcome-loading">Loading...</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="file-view" style="display:none" class="md-body"></div>
   </div>

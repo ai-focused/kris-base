@@ -175,10 +175,12 @@ KRIS_UI_FILES=(
     "templates/interactive/entity-relationship/manifest.json"
     "templates/interactive/entity-relationship/template.html"
     "templates/interactive/entity-relationship/format.md"
+    "static/img/kris-logo.png"
+    "static/img/favicon.ico"
 )
 
 # Create directory structure
-mkdir -p "$KRIS_UI_DIR/templates/interactive/dependency-graph" "$KRIS_UI_DIR/templates/interactive/flow-diagram" "$KRIS_UI_DIR/templates/interactive/entity-relationship" "$KRIS_UI_DIR/static/css" "$KRIS_UI_DIR/static/js"
+mkdir -p "$KRIS_UI_DIR/templates/interactive/dependency-graph" "$KRIS_UI_DIR/templates/interactive/flow-diagram" "$KRIS_UI_DIR/templates/interactive/entity-relationship" "$KRIS_UI_DIR/static/css" "$KRIS_UI_DIR/static/js" "$KRIS_UI_DIR/static/img"
 
 kris_ui_ok=true
 for file in "${KRIS_UI_FILES[@]}"; do
