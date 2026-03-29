@@ -65,18 +65,137 @@ function renderWelcomeDashboard() {
     if (pct > 80) barColor = '#ef4444';
     else if (pct > 60) barColor = '#f59e0b';
 
+    // Core ring: segmented bar with breakdown
+    let barHtml;
+    if (name === 'core' && stats.breakdown && stats.budget_tokens) {
+      const bd = stats.breakdown;
+      const tooltipLines = ['claude_md', 'agents_md', 'other']
+        .filter(k => bd[k].tokens > 0)
+        .map(k => `${bd[k].label}: ${bd[k].tokens} tokens`);
+      if (stats.excluded) {
+        Object.values(stats.excluded).filter(e => e.tokens > 0).forEach(e => {
+          tooltipLines.push(`${e.label}: ${e.tokens} tokens`);
+        });
+      }
+      const tooltip = tooltipLines.join('\n');
+      const segments = ['claude_md', 'agents_md', 'other']
+        .filter(k => bd[k].tokens > 0)
+        .map(k => {
+          const segPct = (bd[k].tokens / stats.budget_tokens) * 100;
+          return `<div class="ring-card-fill" style="width:${segPct}%;background:${bd[k].color}"></div>`;
+        }).join('');
+      barHtml = `<div class="ring-card-bar ring-card-bar-segmented" title="${tooltip}">${segments}</div>`;
+    } else if (stats.budget_tokens) {
+      barHtml = `<div class="ring-card-bar"><div class="ring-card-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div>`;
+    } else {
+      barHtml = '<div class="ring-card-bar"><div class="ring-card-fill" style="width:100%;background:var(--text-muted);opacity:0.2"></div></div>';
+    }
+
     return `<div class="ring-card" onclick="selectRing('${name}')">
       <div class="ring-card-glow" style="background:${r.color}"></div>
       <span class="ring-card-icon">${ringIcons[name]}</span>
       <div class="ring-card-name">${r.label}</div>
       <div class="ring-card-files">${stats.file_count} file${stats.file_count !== 1 ? 's' : ''}</div>
-      ${stats.budget_tokens ? `<div class="ring-card-bar"><div class="ring-card-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div>` : '<div class="ring-card-bar"><div class="ring-card-fill" style="width:100%;background:var(--text-muted);opacity:0.2"></div></div>'}
+      ${barHtml}
       <div class="ring-card-pct">${budgetLabel} ${stats.budget_tokens ? '(' + pctLabel + ')' : ''}</div>
     </div>`;
   }).join('');
 
-  // Load progress.md for achievements and next steps
+  // Load progress + freshness data in parallel
   loadProgressData();
+  loadFreshnessData();
+}
+
+async function loadFreshnessData() {
+  try {
+    const res = await fetch('/api/freshness');
+    const data = await res.json();
+    updateFreshnessIndicator(data);
+    renderFreshnessCard(data);
+  } catch (e) {
+    // Silently fail — git not available
+  }
+}
+
+function updateFreshnessIndicator(data) {
+  const dot = document.getElementById('freshness-dot');
+  if (!dot || !data.available) return;
+  dot.className = 'freshness-dot ' + data.status;
+  const statusLabels = { fresh: 'KRIS is up to date', stale: 'KRIS may need updating', outdated: 'KRIS is outdated' };
+  dot.title = `${statusLabels[data.status]} · Last commit: ${data.last_commit_relative} · Last KRIS update: ${data.last_kris_relative}` +
+    (data.files_changed > 0 ? ` · ${data.files_changed} changes since` : '');
+}
+
+function renderFreshnessCard(data) {
+  const ringsEl = document.getElementById('welcome-rings');
+  if (!ringsEl || !data.available) return;
+  const existing = document.getElementById('freshness-card');
+  if (existing) existing.remove();
+  const statusLabels = { fresh: 'Documentation is fresh', stale: 'Documentation may need updating', outdated: 'Documentation is outdated' };
+
+  const summary = `Last commit: ${data.last_commit_relative} · Last KRIS update: ${data.last_kris_relative}` +
+    (data.commits_since > 0 ? ` · ${data.commits_since} commit${data.commits_since !== 1 ? 's' : ''}, ${data.files_changed} file${data.files_changed !== 1 ? 's' : ''} changed` : '');
+
+  let detailHtml = '';
+  if (data.commits_since > 0) {
+    // Commits list
+    const commitsHtml = (data.commits || []).map(c =>
+      `<div class="freshness-commit"><span class="freshness-hash">${c.hash}</span><span class="freshness-msg">${c.message}</span><span class="freshness-when">${c.when}</span></div>`
+    ).join('');
+
+    // Changed files grouped by directory
+    const dirs = {};
+    (data.changed_files || []).forEach(f => {
+      const parts = f.split('/');
+      const dir = parts.length > 1 ? parts.slice(0, -1).join('/') : '.';
+      if (!dirs[dir]) dirs[dir] = [];
+      dirs[dir].push(parts[parts.length - 1]);
+    });
+    const filesHtml = '<div class="freshness-files-grid">' + Object.keys(dirs).sort().map(dir =>
+      `<div class="freshness-dir">${dir}/</div>` +
+      dirs[dir].map(f => `<div class="freshness-file">${f}</div>`).join('')
+    ).join('') + '</div>';
+
+    detailHtml = `
+      <div class="freshness-details" id="freshness-details" style="display:none">
+        <div class="freshness-section">
+          <div class="freshness-section-title">Commits since last KRIS update (${data.commits_since})</div>
+          ${commitsHtml}
+        </div>
+        <div class="freshness-section">
+          <div class="freshness-section-title">Changed files (${data.files_changed})</div>
+          ${filesHtml}
+        </div>
+        <div style="text-align:right;margin-top:8px">
+          <a class="welcome-link" style="display:inline" href="#" onclick="event.stopPropagation();event.preventDefault();selectRing('inner');selectFile('inner/progress.md')">Update progress.md &#x2192;</a>
+        </div>
+      </div>
+    `;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'freshness-card' + (data.commits_since > 0 ? ' expandable' : '');
+  card.id = 'freshness-card';
+  card.innerHTML = `
+    <span class="freshness-card-dot ${data.status}"></span>
+    <div class="freshness-card-text">
+      <div class="freshness-card-label">${statusLabels[data.status]}${data.commits_since > 0 ? ' <span class="freshness-expand-hint">click to expand</span>' : ''}</div>
+      <div class="freshness-card-detail">${summary}</div>
+    </div>
+    ${detailHtml}
+  `;
+
+  if (data.commits_since > 0) {
+    card.onclick = function(e) {
+      if (e.target.closest('.welcome-link')) return;
+      const details = document.getElementById('freshness-details');
+      if (details) details.style.display = details.style.display === 'none' ? 'block' : 'none';
+    };
+  } else {
+    card.onclick = function() { selectRing('inner'); selectFile('inner/progress.md'); };
+  }
+
+  ringsEl.after(card);
 }
 
 async function loadProgressData() {
@@ -175,17 +294,22 @@ function selectRing(name) {
   updateURL();
 }
 
-function getVisibleFileItems() {
-  return Array.from(document.querySelectorAll('#file-tree .file-item')).filter(el => {
-    // Skip items inside collapsed folders
+function getVisibleTreeItems() {
+  // Returns both file items and folder headers in visual order
+  return Array.from(document.querySelectorAll('#file-tree .file-item, #file-tree .folder-header')).filter(el => {
     const parent = el.closest('.folder-children');
     return !parent || !parent.classList.contains('collapsed');
   });
 }
 
+function getVisibleFileItems() {
+  // File items only (for backward compat with findFileIdxInTree)
+  return getVisibleTreeItems().filter(el => el.classList.contains('file-item'));
+}
+
 function updateTreeFocus() {
-  const items = getVisibleFileItems();
-  document.querySelectorAll('#file-tree .file-item.focused').forEach(el => el.classList.remove('focused'));
+  const items = getVisibleTreeItems();
+  document.querySelectorAll('#file-tree .focused').forEach(el => el.classList.remove('focused'));
   if (treeFocusIdx >= 0 && treeFocusIdx < items.length) {
     items[treeFocusIdx].classList.add('focused');
     items[treeFocusIdx].scrollIntoView({ block: 'nearest' });
@@ -194,7 +318,7 @@ function updateTreeFocus() {
 
 function findFileIdxInTree(path) {
   if (!path) return -1;
-  const items = getVisibleFileItems();
+  const items = getVisibleTreeItems();
   return items.findIndex(el => el.getAttribute('title') === path);
 }
 
@@ -232,18 +356,42 @@ function renderFileTree(ring) {
   const customRoot = folders[''] || [];
   const folderKeys = Object.keys(folders).filter(k => k !== '').sort();
 
-  if (customRoot.length > 0 || folderKeys.length > 0) {
+  const krisFolders = new Set(['.claude/commands', '.kris/tasks']);
+  const customFolderKeys = folderKeys.filter(k => !krisFolders.has(k));
+  const krisFolderKeys = folderKeys.filter(k => krisFolders.has(k));
+
+  if (customRoot.length > 0 || customFolderKeys.length > 0) {
     html += '<div class="tree-section-label">Custom</div>';
     html += customRoot.map(f => renderFileItem(f, 'custom')).join('');
   }
 
-  // Render folder groups
+  // Render custom folders
   const folderLabels = {
     '.claude/commands': '&#x2318; Commands (Claude)',
     '.kris/tasks': '&#x2318; Tasks (Multi-Agent)',
   };
   const collapsedByDefault = new Set(['.claude/commands', '.kris/tasks']);
-  folderKeys.forEach(folder => {
+  customFolderKeys.forEach(folder => {
+    const fid = 'folder-' + folder.replace(/[^a-zA-Z0-9]/g, '-');
+    const label = `&#x1F4C1; ${folder}`;
+    const isCollapsed = fid in folderStates ? !folderStates[fid] : false;
+    html += `<div class="folder-group">
+      <div class="folder-header" onclick="toggleFolder('${fid}')">
+        <span class="folder-chevron${isCollapsed ? '' : ' open'}" id="${fid}-chev">&#x25B6;</span>
+        ${label}
+        <span style="margin-left:auto;font-weight:400;font-size:10px;color:var(--text-muted)">${folders[folder].length}</span>
+      </div>
+      <div class="folder-children${isCollapsed ? ' collapsed' : ''}" id="${fid}">
+        ${folders[folder].map(f => renderFileItem(f, 'custom')).join('')}
+      </div>
+    </div>`;
+  });
+
+  // KRIS Commands / Tasks section
+  if (krisFolderKeys.length > 0) {
+    html += '<div class="tree-section-label">KRIS Commands / Tasks</div>';
+  }
+  krisFolderKeys.forEach(folder => {
     const fid = 'folder-' + folder.replace(/[^a-zA-Z0-9]/g, '-');
     const label = folderLabels[folder] || `&#x1F4C1; ${folder}`;
     // Use persisted state if available, otherwise use default
@@ -311,6 +459,14 @@ function toggleFolder(fid) {
 async function selectFile(path, searchQuery) {
   activeFile = path;
   treeFocusIdx = -1;
+  // Switch to docs view if on home or interactive
+  if (currentView !== 'docs') {
+    currentView = 'docs';
+    updateNavActive();
+    document.getElementById('sidebar').style.display = '';
+    document.getElementById('meta-panel').style.display = '';
+    document.getElementById('app').style.gridTemplateColumns = '260px 1fr 240px';
+  }
   // Re-render tree to update active state
   if (activeRing) renderFileTree(activeRing);
   const res = await fetch('/api/file?path=' + encodeURIComponent(path));
@@ -422,6 +578,8 @@ async function selectFile(path, searchQuery) {
     }
   }
   contentEl.focus();
+  // Sync tree focus to selected file so arrow keys start from here
+  treeFocusIdx = findFileIdxInTree(path);
 }
 
 // Walk DOM text nodes to find and highlight ALL occurrences of query
@@ -537,13 +695,51 @@ function renderMeta(data) {
   if (stats) {
     const budget = stats.budget_tokens;
     const pct = stats.budget_pct;
+
+    // Core ring: segmented budget bar with breakdown
+    let budgetBarHtml = '';
+    if (ring === 'core' && stats.breakdown && budget) {
+      const bd = stats.breakdown;
+      const segments = ['claude_md', 'agents_md', 'other']
+        .filter(k => bd[k].tokens > 0)
+        .map(k => {
+          const segPct = (bd[k].tokens / budget) * 100;
+          return `<div class="budget-fill" style="width:${segPct}%;background:${bd[k].color}"></div>`;
+        }).join('');
+      // Tooltip for the whole bar
+      const tooltipLines = ['claude_md', 'agents_md', 'other']
+        .filter(k => bd[k].tokens > 0)
+        .map(k => `${bd[k].label}: ${bd[k].tokens} tokens`);
+      if (stats.excluded) {
+        Object.values(stats.excluded).filter(e => e.tokens > 0).forEach(e => {
+          tooltipLines.push(`${e.label}: ${e.tokens} tokens`);
+        });
+      }
+      budgetBarHtml = `<div class="budget-bar budget-bar-segmented" title="${tooltipLines.join('\n')}">${segments}</div>`;
+      // Legend
+      budgetBarHtml += '<div class="budget-legend">' +
+        ['claude_md', 'agents_md', 'other']
+          .filter(k => bd[k].tokens > 0)
+          .map(k => `<span class="budget-legend-item"><span class="budget-legend-dot" style="background:${bd[k].color}"></span>${bd[k].label}</span>`)
+          .join('');
+      // Show excluded as dimmed
+      if (stats.excluded) {
+        Object.values(stats.excluded).filter(e => e.tokens > 0).forEach(e => {
+          budgetBarHtml += `<span class="budget-legend-item" style="opacity:0.5"><span class="budget-legend-dot" style="background:var(--text-muted)"></span>${e.label}</span>`;
+        });
+      }
+      budgetBarHtml += '</div>';
+    } else if (budget) {
+      budgetBarHtml = `<div class="budget-bar"><div class="budget-fill" style="width:${Math.min(pct,100)}%;background:${ringConf.color}"></div></div>`;
+    }
+
     html += `
       <div class="meta-section">
         <div class="meta-label">${ringConf.label} Ring Budget</div>
         <div class="meta-row"><span class="label">Used</span><span class="value">${stats.total_tokens.toLocaleString()} tokens</span></div>
         <div class="meta-row"><span class="label">Budget</span><span class="value">${budget ? budget.toLocaleString() : 'Unlimited'}</span></div>
-        ${budget ? `<div class="budget-bar"><div class="budget-fill" style="width:${Math.min(pct,100)}%;background:${ringConf.color}"></div></div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;text-align:right">${pct}% used</div>` : ''}
+        ${budgetBarHtml}
+        ${budget ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;text-align:right">${pct}% used</div>` : ''}
       </div>
     `;
   }
@@ -727,7 +923,7 @@ document.addEventListener('keydown', function(e) {
 
   // Arrow keys: navigate file tree when a ring is selected
   if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && activeRing) {
-    const items = getVisibleFileItems();
+    const items = getVisibleTreeItems();
     if (items.length === 0) return;
     e.preventDefault();
     if (e.key === 'ArrowDown') {
@@ -739,12 +935,37 @@ document.addEventListener('keydown', function(e) {
     return;
   }
 
-  // Enter: open focused file in tree
-  if (e.key === 'Enter' && treeFocusIdx >= 0) {
-    const items = getVisibleFileItems();
-    if (items[treeFocusIdx]) {
+  // ArrowRight / ArrowLeft: expand/collapse focused folder header
+  if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && treeFocusIdx >= 0 && activeRing) {
+    const items = getVisibleTreeItems();
+    const focused = items[treeFocusIdx];
+    if (focused && focused.classList.contains('folder-header')) {
       e.preventDefault();
-      items[treeFocusIdx].click();
+      const fid = focused.nextElementSibling ? focused.nextElementSibling.id : null;
+      if (!fid) return;
+      const children = document.getElementById(fid);
+      if (!children) return;
+      const isCollapsed = children.classList.contains('collapsed');
+      if (e.key === 'ArrowRight' && isCollapsed) {
+        toggleFolder(fid);
+      } else if (e.key === 'ArrowLeft' && !isCollapsed) {
+        toggleFolder(fid);
+      }
+      return;
+    }
+  }
+
+  // Enter: open focused file or toggle focused folder
+  if (e.key === 'Enter' && treeFocusIdx >= 0) {
+    const items = getVisibleTreeItems();
+    const focused = items[treeFocusIdx];
+    if (focused) {
+      e.preventDefault();
+      if (focused.classList.contains('folder-header')) {
+        focused.click(); // toggles the folder
+      } else {
+        focused.click(); // opens the file
+      }
       return;
     }
   }
@@ -820,6 +1041,106 @@ document.addEventListener('keydown', function(e) {
 });
 
 // --- Help modal ---
+// --- About / Version check ---
+let versionData = null;
+
+async function checkForUpdates() {
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/versions.json');
+    if (!res.ok) return;
+    versionData = await res.json();
+    const latest = versionData.current.stable;
+    const label = document.getElementById('version-label');
+    if (!label) return;
+
+    // Compare versions (simple string compare works for semver-like X.Y)
+    const currentParts = label.textContent.replace('KRIS v', '').split('.').map(Number);
+    const latestParts = latest.split('.').map(Number);
+    const isNewer = latestParts[0] > currentParts[0] ||
+      (latestParts[0] === currentParts[0] && latestParts[1] > currentParts[1]);
+
+    if (isNewer) {
+      const latestInfo = versionData.versions[latest];
+      const tagline = latestInfo && latestInfo.changelog ? latestInfo.changelog[0] : 'New version available';
+      label.classList.add('has-update');
+      label.innerHTML += `<span class="version-update-arrow" title="${tagline}">&#x2191;</span>`;
+      label.title = `KRIS v${latest} available — ${tagline}`;
+    }
+  } catch (e) {
+    // Silently fail — offline or CORS
+  }
+}
+
+function showAbout() {
+  const modal = document.getElementById('about-modal');
+  modal.classList.add('active');
+
+  const updateEl = document.getElementById('about-update');
+  const changelogEl = document.getElementById('about-changelog');
+
+  if (!versionData) {
+    updateEl.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:12px 0">Checking for updates...</p>';
+    checkForUpdates().then(() => renderAboutContent());
+    return;
+  }
+  renderAboutContent();
+}
+
+function renderAboutContent() {
+  const updateEl = document.getElementById('about-update');
+  const changelogEl = document.getElementById('about-changelog');
+  if (!versionData) {
+    updateEl.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:12px 0">Could not check for updates (offline?)</p>';
+    return;
+  }
+
+  const label = document.getElementById('version-label');
+  const currentVersion = label ? label.textContent.replace('KRIS v', '').replace(/[^\d.]/g, '') : '0.0';
+  const latest = versionData.current.stable;
+  const latestInfo = versionData.versions[latest];
+
+  const currentParts = currentVersion.split('.').map(Number);
+  const latestParts = latest.split('.').map(Number);
+  const isNewer = latestParts[0] > currentParts[0] ||
+    (latestParts[0] === currentParts[0] && latestParts[1] > currentParts[1]);
+
+  if (isNewer && latestInfo) {
+    updateEl.innerHTML = `
+      <div class="about-update-banner">
+        <div class="about-update-title">&#x2191; Update Available: v${latest}</div>
+        <div class="about-update-subtitle">${latestInfo.date}</div>
+        <ul class="about-changelog-list">
+          ${latestInfo.changelog.map(c => `<li>${c}</li>`).join('')}
+        </ul>
+        <div class="about-upgrade-label" style="margin-top:12px">To upgrade, run in Claude Code:</div>
+        <div class="about-upgrade-cmd">/kris-upgrade</div>
+        <div class="about-upgrade-label" style="margin-top:8px">Or with other AI agents:</div>
+        <div class="about-upgrade-cmd">run kris-upgrade</div>
+      </div>
+    `;
+  } else {
+    updateEl.innerHTML = '<p style="font-size:12px;color:var(--mvp-color,#4CAF50);padding:12px 0">&#x2713; You are on the latest version</p>';
+  }
+
+  // Show current version changelog
+  const currentInfo = versionData.versions[currentVersion];
+  if (currentInfo && currentInfo.changelog) {
+    changelogEl.innerHTML = `
+      <div class="about-label" style="margin-top:12px">What's in v${currentVersion}</div>
+      <ul class="about-changelog-list" style="margin-top:8px">
+        ${currentInfo.changelog.map(c => `<li>${c}</li>`).join('')}
+      </ul>
+    `;
+  }
+}
+
+function closeAbout() {
+  document.getElementById('about-modal').classList.remove('active');
+}
+
+// Check for updates on load (non-blocking)
+setTimeout(checkForUpdates, 3000);
+
 function toggleHelp() {
   document.getElementById('help-modal').classList.toggle('active');
 }

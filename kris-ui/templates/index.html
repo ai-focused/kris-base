@@ -27,6 +27,7 @@
       <a href="#" id="nav-interactive" onclick="event.preventDefault();showInteractiveDocs()">Interactive</a>
     </nav>
     <div class="header-spacer"></div>
+    <span class="freshness-dot" id="freshness-dot" onclick="selectRing('inner');selectFile('inner/progress.md')" title="Checking freshness..."></span>
     <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme">&#x263E;</button>
     <div id="search-box">
       <span class="search-icon">&#x1F50D;</span>
@@ -119,7 +120,27 @@
 
 <!-- Floating help button -->
 <button class="help-btn" onclick="toggleHelp()" title="Keyboard shortcuts (?)">?</button>
-<span class="version-label">KRIS v{{ kris_version }}</span>
+<span class="version-label" id="version-label" onclick="showAbout()" title="KRIS v{{ kris_version }}">KRIS v{{ kris_version }}</span>
+
+<!-- About modal -->
+<div class="modal-overlay" id="about-modal" onclick="if(event.target===this)closeAbout()">
+  <div class="modal about-modal">
+    <h2><img src="/static/img/kris-logo.png" alt="KRIS" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px">About KRIS <button class="modal-close" onclick="closeAbout()">&times;</button></h2>
+    <div id="about-content">
+      <div class="about-current">
+        <div class="about-label">Installed Version</div>
+        <div class="about-version">v{{ kris_version }}</div>
+      </div>
+      <div id="about-update"></div>
+      <div id="about-changelog"></div>
+      <div class="about-credits">
+        <div class="about-label" style="margin-top:16px">Credits</div>
+        <p style="font-size:12px;color:var(--text-secondary)">Created by Alexandru Negrila</p>
+        <p style="font-size:12px"><a href="https://github.com/ai-focused/kris-base" style="color:var(--accent)">github.com/ai-focused/kris-base</a></p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Config injection from Python -->
 <script>

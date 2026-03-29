@@ -12,7 +12,7 @@ Show KRIS welcome banner, credits, project status, and available commands.
 │  Contact: alex@scaledagile.pro                               │
 │  Documentation: https://github.com/ai-focused/kris-base      │
 │                                                              │
-│  KRIS Version: 3.1                                           │
+│  KRIS Version: 3.2                                           │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 

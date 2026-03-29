@@ -14,7 +14,7 @@ import yaml
 
 from flask import Flask, jsonify, request, abort, Response, render_template
 
-KRIS_VERSION = "3.1"
+KRIS_VERSION = "3.2"
 import markdown
 from markdown.extensions.codehilite import CodeHiliteExtension
 from pygments.formatters import HtmlFormatter
@@ -306,13 +306,37 @@ def get_ring_stats(ring_name: str) -> dict:
     total_tokens = sum(f["tokens"] for f in files)
     budget = RINGS[ring_name]["budget_tokens"]
     pct = round(total_tokens / budget * 100, 1) if budget else None
-    return {
+    stats = {
         "file_count": len(files),
         "total_words": total_words,
         "total_tokens": total_tokens,
         "budget_tokens": budget,
         "budget_pct": pct,
     }
+    # Core ring: break down by category for colored budget bar
+    # Commands and tasks are NOT counted in the budget — they're only loaded on demand
+    if ring_name == "core":
+        claude_tokens = sum(f["tokens"] for f in files if f["name"] == "CLAUDE.md")
+        agents_tokens = sum(f["tokens"] for f in files if f["name"] == "AGENTS.md")
+        commands_tokens = sum(f["tokens"] for f in files if f.get("folder", "").startswith(".claude/"))
+        tasks_tokens = sum(f["tokens"] for f in files if f.get("folder", "").startswith(".kris/"))
+        excluded_tokens = commands_tokens + tasks_tokens
+        budgeted_tokens = total_tokens - excluded_tokens
+        other_tokens = budgeted_tokens - claude_tokens - agents_tokens
+        # Recalculate stats without commands/tasks
+        stats["total_tokens"] = budgeted_tokens
+        stats["total_words"] = total_words - sum(f["words"] for f in files if f.get("folder", "").startswith((".claude/", ".kris/")))
+        stats["budget_pct"] = round(budgeted_tokens / budget * 100, 1) if budget else None
+        stats["breakdown"] = {
+            "claude_md": {"tokens": claude_tokens, "color": "#7c5cff", "label": "CLAUDE.md"},
+            "agents_md": {"tokens": agents_tokens, "color": "#D4A843", "label": "AGENTS.md"},
+            "other": {"tokens": other_tokens, "color": "#888888", "label": "Other core files"},
+        }
+        stats["excluded"] = {
+            "commands": {"tokens": commands_tokens, "label": "Commands (on-demand)"},
+            "tasks": {"tokens": tasks_tokens, "label": "Tasks (on-demand)"},
+        }
+    return stats
 
 
 def parse_frontmatter(content: str) -> list[dict]:
@@ -598,6 +622,102 @@ def api_template_format():
         abort(404)
     content = format_path.read_text(encoding="utf-8", errors="replace")
     return jsonify({"html": render_markdown(content), "raw": content})
+
+
+@app.route("/api/freshness")
+def api_freshness():
+    """Compare git activity vs KRIS documentation freshness."""
+    import subprocess
+    result = {"available": False}
+    try:
+        # Last git commit timestamp
+        git_ts = subprocess.run(
+            ["git", "log", "-1", "--format=%ct"],
+            cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=5
+        )
+        if git_ts.returncode != 0:
+            return jsonify(result)
+        last_commit_ts = int(git_ts.stdout.strip())
+
+        # Last KRIS update from progress.md
+        progress_path = MEMORY_BANK_ROOT / "inner" / "progress.md"
+        last_kris_ts = 0
+        if progress_path.exists():
+            content = progress_path.read_text(encoding="utf-8", errors="replace")
+            date_match = re.search(
+                r"(?:Last Updated|last updated)[:\s]*(\d{4}-\d{2}-\d{2})",
+                content, re.IGNORECASE
+            )
+            if date_match:
+                try:
+                    last_kris_ts = int(datetime.strptime(date_match.group(1), "%Y-%m-%d").timestamp())
+                except ValueError:
+                    pass
+            if last_kris_ts == 0:
+                last_kris_ts = int(progress_path.stat().st_mtime)
+
+        since_date = datetime.fromtimestamp(last_kris_ts).strftime("%Y-%m-%d") if last_kris_ts > 0 else ""
+
+        # Commits since last KRIS update
+        commits_since = 0
+        commit_list = []
+        if since_date:
+            git_log = subprocess.run(
+                ["git", "log", f"--since={since_date}", "--format=%h|%s|%cr|%an", "--no-merges"],
+                cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=5
+            )
+            if git_log.returncode == 0:
+                lines = [l for l in git_log.stdout.strip().split("\n") if l.strip()]
+                commits_since = len(lines)
+                for line in lines[:20]:  # cap at 20 for UI
+                    parts = line.split("|", 3)
+                    if len(parts) >= 3:
+                        commit_list.append({
+                            "hash": parts[0],
+                            "message": parts[1],
+                            "when": parts[2],
+                            "author": parts[3] if len(parts) > 3 else "",
+                        })
+
+        # Files changed since last KRIS update
+        changed_files = []
+        if since_date:
+            git_diff = subprocess.run(
+                ["git", "log", f"--since={since_date}", "--name-only", "--format=", "--no-merges"],
+                cwd=str(PROJECT_ROOT), capture_output=True, text=True, timeout=5
+            )
+            if git_diff.returncode == 0:
+                # Deduplicate and count
+                all_files = set(l.strip() for l in git_diff.stdout.strip().split("\n") if l.strip())
+                # Exclude memory-bank/kris-ui from the list
+                changed_files = sorted(f for f in all_files if not f.startswith("memory-bank/kris-ui"))
+
+        drift_seconds = last_commit_ts - last_kris_ts if last_kris_ts > 0 else 0
+        drift_days = max(0, drift_seconds / 86400)
+
+        if drift_days < 1 or len(changed_files) == 0:
+            status = "fresh"
+        elif drift_days < 7:
+            status = "stale"
+        else:
+            status = "outdated"
+
+        result = {
+            "available": True,
+            "last_commit_ts": last_commit_ts,
+            "last_commit_relative": relative_time(last_commit_ts),
+            "last_kris_ts": last_kris_ts,
+            "last_kris_relative": relative_time(last_kris_ts) if last_kris_ts > 0 else "never",
+            "files_changed": len(changed_files),
+            "changed_files": changed_files[:50],  # cap for payload size
+            "commits_since": commits_since,
+            "commits": commit_list,
+            "drift_days": round(drift_days, 1),
+            "status": status,
+        }
+    except Exception:
+        pass
+    return jsonify(result)
 
 
 def _parse_project_info() -> dict:

@@ -192,4 +192,4 @@ For visualizations that don't fit any template, place standalone `.html` files i
 
 ---
 
-*KRIS UI v3.1 | Part of KRIS (Knowledge Rings Information System)*
+*KRIS UI v3.2 | Part of KRIS (Knowledge Rings Information System)*

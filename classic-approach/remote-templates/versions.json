@@ -1,21 +1,24 @@
 {
   "current": {
-    "stable": "3.1",
-    "latest": "3.1"
+    "stable": "3.2",
+    "latest": "3.2"
   },
   "versions": {
-    "3.1": {
-      "date": "2026-03-29",
+    "3.2": {
+      "date": "2026-03-30",
       "channel": ["stable", "latest"],
       "changelog": [
-        "KRIS logo replaces CSS ring in header — favicon.ico for browser tabs",
-        "Project branding — Logo path from CLAUDE.md frontmatter, shown alongside KRIS logo",
-        "Header layout: [KRIS logo] KRIS | [project logo] Project Name",
-        "Welcome dashboard — ring cards with live token budget bars, achievements, next steps",
-        "Dashboard parses progress.md for completed tasks and pending items",
-        "Home button + H keyboard shortcut — refreshes ring data live, no restart needed",
-        "Project name parsed from CLAUDE.md title line, fallback to folder name",
-        "/api/project-logo route serves project logo with path validation"
+        "Documentation freshness indicator — git vs KRIS drift detection in header and dashboard",
+        "Expandable freshness card with commit history and changed files in 2-column grid",
+        "Core ring segmented budget bar — CLAUDE.md, AGENTS.md, other files with distinct colors",
+        "Commands and Tasks excluded from token budget (on-demand, not loaded every session)",
+        "Budget tooltip shows one entry per line with all categories",
+        "KRIS Commands / Tasks section label in sidebar (separate from Custom)",
+        "Keyboard nav: arrow down starts from selected file, folder expand/collapse with arrows",
+        "ArrowRight expands folder, ArrowLeft collapses, Enter toggles, arrows skip collapsed children",
+        "About KRIS modal — version check from GitHub, changelog, upgrade instructions",
+        "Footer version label with golden arrow when update available",
+        "Nav auto-switches to Docs when selecting a file from Home"
       ],
       "files": {
         "base": "CLAUDE.md.base",
@@ -61,6 +64,22 @@
           "kris-ui/templates/interactive/entity-relationship/format.md"
         ]
       }
+    },
+    "3.1": {
+      "date": "2026-03-29",
+      "channel": ["archived"],
+      "changelog": [
+        "KRIS logo replaces CSS ring in header — favicon.ico for browser tabs",
+        "Project branding — Logo path from CLAUDE.md frontmatter, shown alongside KRIS logo",
+        "Header layout: [KRIS logo] KRIS | [project logo] Project Name",
+        "Welcome dashboard — ring cards with live token budget bars, achievements, next steps",
+        "Dashboard parses progress.md for completed tasks and pending items",
+        "Home button + H keyboard shortcut — refreshes ring data live, no restart needed",
+        "Project name parsed from CLAUDE.md title line, fallback to folder name",
+        "/api/project-logo route serves project logo with path validation"
+      ],
+      "deprecated": true,
+      "upgrade_to": "3.2"
     },
     "3.0": {
       "date": "2026-03-29",

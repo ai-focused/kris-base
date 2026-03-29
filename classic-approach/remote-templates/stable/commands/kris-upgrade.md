@@ -113,7 +113,7 @@ IF `AGENTS.md` exists AND already contains "KRIS" → skip (already configured)
 #### 2.5 Download KRIS UI files
 
 ```bash
-mkdir -p memory-bank/kris-ui/templates/interactive/dependency-graph memory-bank/kris-ui/templates/interactive/flow-diagram memory-bank/kris-ui/templates/interactive/entity-relationship memory-bank/kris-ui/static/css memory-bank/kris-ui/static/js
+mkdir -p memory-bank/kris-ui/templates/interactive/dependency-graph memory-bank/kris-ui/templates/interactive/flow-diagram memory-bank/kris-ui/templates/interactive/entity-relationship memory-bank/kris-ui/static/css memory-bank/kris-ui/static/js memory-bank/kris-ui/static/img
 ```
 
 Download all files from `https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/`:
@@ -121,6 +121,7 @@ Download all files from `https://raw.githubusercontent.com/ai-focused/kris-base/
 - `templates/index.html`
 - `static/css/style.css`, `static/css/interactive-base.css`
 - `static/js/kris-ui.js`, `static/js/interactive-base.js`
+- `static/img/kris-logo.png`, `static/img/favicon.ico`
 - `templates/interactive/base.html`
 - `templates/interactive/dependency-graph/manifest.json`, `template.html`, `format.md`
 - `templates/interactive/flow-diagram/manifest.json`, `template.html`, `format.md`
