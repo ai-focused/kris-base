@@ -1,6 +1,6 @@
 # Welcome to {PROJECT_NAME}!
 
-> **We're using KRIS** (Knowledge Rings Information System) v2.6
+> **We're using KRIS** (Knowledge Rings Information System) v3.0
 > Type `/kris` for commands | `/kris-status` for ring health
 
 ---
@@ -197,6 +197,10 @@ tokens = words x 1.3 (do this in your response, not bash)
 | `/kris-compact` | Optimize ring content |
 | `/kris-query <ring> <topic>` | Search ring for topic |
 
+### Multi-Agent Support
+
+KRIS commands are also available as agent-agnostic task specs in `.kris/tasks/` for use with Codex, Cursor, Copilot, and other AI tools. See [AGENTS.md](AGENTS.md) for the task system.
+
 ---
 
 ## KRIS Memory Bank UI
@@ -293,10 +297,10 @@ Run `/kris-status` to check usage.
 │  KRIS - Knowledge Rings Information System                   │
 │  Created by: Alexandru Negrila (alex@scaledagile.pro)        │
 │  Documentation: https://github.com/ai-focused/kris-base      │
-│  KRIS Version: 2.6                                           │
+│  KRIS Version: 3.0                                           │
 ╰──────────────────────────────────────────────────────────────╯
 
 ---
 
 *Last Updated: {CURRENT_DATE}*
-*KRIS Version: 2.6*
+*KRIS Version: 3.0*

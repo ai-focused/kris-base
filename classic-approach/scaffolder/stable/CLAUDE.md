@@ -1,6 +1,6 @@
 # KRIS Project Setup
 
-> **Scaffolder Version**: v2.6 (Windows Support)
+> **Scaffolder Version**: v3.0 (Windows Support)
 > This file will guide you through setting up KRIS for your project.
 
 ---
@@ -205,7 +205,7 @@ I'll validate your answers, help fill in any "not sure" responses, and create yo
 │  KRIS - Knowledge Rings Information System                   │
 │  Created by: Alexandru Negrila (alex@scaledagile.pro)        │
 │  Documentation: https://github.com/ai-focused/kris-base      │
-│  Version: 2.6                                                │
+│  Version: 3.0                                                │
 ╰──────────────────────────────────────────────────────────────╯
 
 ---
@@ -213,14 +213,14 @@ I'll validate your answers, help fill in any "not sure" responses, and create yo
 <!-- CLAUDE INSTRUCTIONS
 
 ## Overview
-This is a KRIS scaffolder (v2.6 - Windows Support).
+This is a KRIS scaffolder (v3.0 - Windows Support).
 When opened, run PHASE 0 (OS detection + auto-detection) first, then guide user through questionnaire.
 
 ⚠️ All shell examples in this file use Unix/bash syntax.
    If SHELL_ENV is "windows", translate all commands to PowerShell before executing.
 
 ## Remote Template URLs
-GITHUB_RAW_BASE = "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable"
+GITHUB_RAW_BASE = "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest"
 
 Files to fetch:
 - ${GITHUB_RAW_BASE}/CLAUDE.md.base -> Final CLAUDE.md template
@@ -359,6 +359,7 @@ mkdir -p memory-bank/inner
 mkdir -p memory-bank/middle
 mkdir -p memory-bank/outer/archive
 mkdir -p .claude/commands
+mkdir -p .kris/tasks
 ```
 
 ### Step 5: CREATE README FILES (minimal, 5 lines each)
@@ -614,24 +615,42 @@ mkdir -p .kris-temp/commands
 
 **8.2 Download CLAUDE.md.base:**
 ```bash
-curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable/CLAUDE.md.base" > .kris-temp/CLAUDE.md.base
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/CLAUDE.md.base" > .kris-temp/CLAUDE.md.base
 ```
 
 **8.3 Download ALL command files:**
 ```bash
-curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable/commands/kris.md" > .kris-temp/commands/kris.md
-curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable/commands/kris-status.md" > .kris-temp/commands/kris-status.md
-curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable/commands/kris-update.md" > .kris-temp/commands/kris-update.md
-curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable/commands/kris-upgrade.md" > .kris-temp/commands/kris-upgrade.md
-curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable/commands/kris-archive.md" > .kris-temp/commands/kris-archive.md
-curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable/commands/kris-compact.md" > .kris-temp/commands/kris-compact.md
-curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/stable/commands/kris-query.md" > .kris-temp/commands/kris-query.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/commands/kris.md" > .kris-temp/commands/kris.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/commands/kris-status.md" > .kris-temp/commands/kris-status.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/commands/kris-update.md" > .kris-temp/commands/kris-update.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/commands/kris-upgrade.md" > .kris-temp/commands/kris-upgrade.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/commands/kris-archive.md" > .kris-temp/commands/kris-archive.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/commands/kris-compact.md" > .kris-temp/commands/kris-compact.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/commands/kris-query.md" > .kris-temp/commands/kris-query.md
 ```
 
-**8.4 Verify downloads succeeded:**
+**8.4 Download ALL task files (multi-agent support):**
+```bash
+mkdir -p .kris-temp/tasks
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/tasks/kris.md" > .kris-temp/tasks/kris.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/tasks/kris-status.md" > .kris-temp/tasks/kris-status.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/tasks/kris-update.md" > .kris-temp/tasks/kris-update.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/tasks/kris-upgrade.md" > .kris-temp/tasks/kris-upgrade.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/tasks/kris-archive.md" > .kris-temp/tasks/kris-archive.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/tasks/kris-compact.md" > .kris-temp/tasks/kris-compact.md
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/tasks/kris-query.md" > .kris-temp/tasks/kris-query.md
+```
+
+**8.5 Download AGENTS.md.base:**
+```bash
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/AGENTS.md.base" > .kris-temp/AGENTS.md.base
+```
+
+**8.6 Verify downloads succeeded:**
 ```bash
 wc -l .kris-temp/CLAUDE.md.base
 ls -la .kris-temp/commands/
+ls -la .kris-temp/tasks/
 ```
 
 ⚠️ If CLAUDE.md.base is < 50 lines, download FAILED. Show this message and STOP:
@@ -639,7 +658,7 @@ ls -la .kris-temp/commands/
 Unable to download templates from GitHub.
 
 Manual installation:
-1. Visit: https://github.com/ai-focused/kris-base/tree/main/classic-approach/remote-templates/stable
+1. Visit: https://github.com/ai-focused/kris-base/tree/main/classic-approach/remote-templates/latest
 2. Download CLAUDE.md.base and all files in commands/
 3. Place in your project and replace placeholders manually
 
@@ -665,12 +684,22 @@ Use the Read tool on `.kris-temp/CLAUDE.md.base`
 mv .kris-temp/commands/*.md .claude/commands/
 ```
 
-**10.2 Replace scaffolder with final CLAUDE.md:**
+**10.2 Move tasks:**
+```bash
+mv .kris-temp/tasks/*.md .kris/tasks/
+```
+
+**10.3 Set up AGENTS.md (non-destructive):**
+IF `AGENTS.md` does not exist → `mv .kris-temp/AGENTS.md.base AGENTS.md`
+IF `AGENTS.md` exists AND does not contain "KRIS" → prepend `.kris-temp/AGENTS.md.base` content at top of existing `AGENTS.md`, add `---` separator between
+IF `AGENTS.md` exists AND contains "KRIS" → skip (already configured)
+
+**10.4 Replace scaffolder with final CLAUDE.md:**
 ```bash
 mv .kris-temp/CLAUDE.md.base CLAUDE.md
 ```
 
-**10.3 Cleanup:**
+**10.5 Cleanup:**
 ```bash
 rm -rf .kris-temp
 ```
@@ -691,7 +720,9 @@ Created:
      ├── outer/archive/
      └── kris-ui/ (web viewer for KRIS docs)
   📁 .claude/commands/ (7 KRIS commands)
+  📁 .kris/tasks/ (7 agent-agnostic task specs)
   📄 CLAUDE.md
+  📄 AGENTS.md (multi-agent support)
 
 Available commands:
   /kris          - Show status and next steps

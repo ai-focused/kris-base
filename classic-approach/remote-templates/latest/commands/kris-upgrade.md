@@ -90,7 +90,27 @@ Download ALL commands (the bootstrap already updated kris-upgrade, but re-downlo
 
 Base URL: `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/commands/`
 
-#### 2.3 Download KRIS UI files
+#### 2.3 Download KRIS Tasks (.kris/tasks/)
+
+```bash
+mkdir -p .kris/tasks
+```
+
+Download all 7 task files from:
+`https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/tasks/`
+- `kris.md`, `kris-status.md`, `kris-update.md`, `kris-upgrade.md`
+- `kris-archive.md`, `kris-compact.md`, `kris-query.md`
+
+#### 2.4 Update AGENTS.md (non-destructive)
+
+Download `AGENTS.md.base` from:
+`https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/AGENTS.md.base`
+
+IF `AGENTS.md` does not exist → save as `AGENTS.md`
+IF `AGENTS.md` exists AND does not contain "KRIS" → prepend downloaded content at top, preserve everything below (add `---` separator)
+IF `AGENTS.md` exists AND already contains "KRIS" → skip (already configured)
+
+#### 2.5 Download KRIS UI files
 
 ```bash
 mkdir -p memory-bank/kris-ui/templates/interactive/dependency-graph memory-bank/kris-ui/templates/interactive/flow-diagram memory-bank/kris-ui/templates/interactive/entity-relationship memory-bank/kris-ui/static/css memory-bank/kris-ui/static/js
@@ -185,8 +205,10 @@ rm -f .kris-temp-template.md
 │                                                              │
 │  Updated:                                                    │
 │    • Commands: 7 files in .claude/commands/                   │
-│    • KRIS UI: 15 files in memory-bank/kris-ui/               │
+│    • Tasks: 7 files in .kris/tasks/                           │
+│    • KRIS UI: files in memory-bank/kris-ui/                   │
 │    • CLAUDE.md: [N] sections added, [M] updated              │
+│    • AGENTS.md: [created|updated|unchanged]                  │
 │                                                              │
 │  Preserved:                                                  │
 │    • [N] customized sections unchanged                       │

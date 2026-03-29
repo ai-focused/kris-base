@@ -175,6 +175,71 @@ if ($kris_ui_ok) {
     Write-Host "⚠ Some KRIS UI files failed to download. You can re-run the installer later." -ForegroundColor Yellow
 }
 
+# Download KRIS Tasks (for multi-agent support)
+Write-Host ""
+Write-Host "Downloading KRIS Tasks..." -ForegroundColor Cyan
+
+$KRIS_TASKS_DIR = ".kris\tasks"
+$KRIS_TASK_FILES = @(
+    "kris.md",
+    "kris-status.md",
+    "kris-update.md",
+    "kris-upgrade.md",
+    "kris-archive.md",
+    "kris-compact.md",
+    "kris-query.md"
+)
+
+New-Item -ItemType Directory -Force -Path $KRIS_TASKS_DIR | Out-Null
+
+$kris_tasks_ok = $true
+foreach ($file in $KRIS_TASK_FILES) {
+    $url = "$GITHUB_RAW_BASE/remote-templates/$VERSION/tasks/$file"
+    $dest = "$KRIS_TASKS_DIR\$file"
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
+    } catch {
+        Write-Host "  ✗ Failed: $file" -ForegroundColor Red
+        $kris_tasks_ok = $false
+    }
+}
+
+if ($kris_tasks_ok) {
+    Write-Host "✓ KRIS Tasks downloaded ($($KRIS_TASK_FILES.Count) files)" -ForegroundColor Green
+} else {
+    Write-Host "⚠ Some task files failed to download." -ForegroundColor Yellow
+}
+
+# Download AGENTS.md (non-destructive)
+Write-Host ""
+Write-Host "Setting up AGENTS.md..." -ForegroundColor Cyan
+
+$AGENTS_URL = "$GITHUB_RAW_BASE/remote-templates/$VERSION/AGENTS.md.base"
+
+if (Test-Path "AGENTS.md") {
+    if (Select-String -Path "AGENTS.md" -Pattern "KRIS" -Quiet) {
+        Write-Host "✓ AGENTS.md already has KRIS configuration" -ForegroundColor Green
+    } else {
+        try {
+            Invoke-WebRequest -Uri $AGENTS_URL -OutFile ".kris-agents-block.tmp" -UseBasicParsing
+            $krisBlock = Get-Content ".kris-agents-block.tmp" -Raw
+            $existing = Get-Content "AGENTS.md" -Raw
+            "$krisBlock`n`n---`n`n$existing" | Set-Content "AGENTS.md"
+            Remove-Item ".kris-agents-block.tmp" -Force
+            Write-Host "✓ KRIS block prepended to existing AGENTS.md" -ForegroundColor Green
+        } catch {
+            Write-Host "⚠ Could not update AGENTS.md" -ForegroundColor Yellow
+        }
+    }
+} else {
+    try {
+        Invoke-WebRequest -Uri $AGENTS_URL -OutFile "AGENTS.md" -UseBasicParsing
+        Write-Host "✓ AGENTS.md created" -ForegroundColor Green
+    } catch {
+        Write-Host "⚠ Could not download AGENTS.md" -ForegroundColor Yellow
+    }
+}
+
 # Success message and next steps
 Write-Host ""
 Write-Host "╭──────────────────────────────────────────────────────────────╮" -ForegroundColor Green

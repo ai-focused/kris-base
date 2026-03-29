@@ -1,6 +1,8 @@
 # KRIS - Knowledge Rings Information System
 
-KRIS gives AI assistants **persistent memory** across sessions. Instead of starting fresh each time, Claude remembers your project's context, decisions, and progress.
+KRIS gives AI assistants **persistent memory** across sessions. Instead of starting fresh each time, your AI assistant remembers your project's context, decisions, and progress.
+
+KRIS works with **Claude Code**, **OpenAI Codex**, **Cursor**, **GitHub Copilot**, **Windsurf**, and any AI tool that reads `AGENTS.md`.
 
 ## The Four Rings
 
@@ -13,11 +15,22 @@ Documentation is organized in concentric rings, each with specific purposes and 
 | 📚 **Middle** | System docs, architecture | ~50k/file |
 | 📦 **Outer** | Archive, historical docs | Unlimited |
 
+### Core Ring Files
+
+The Core Ring includes these root-level files (displayed in KRIS UI with a `root` badge):
+
+| File | Purpose | Used by |
+|------|---------|---------|
+| `CLAUDE.md` | Project rules, engineering standards, KRIS configuration | Claude Code |
+| `AGENTS.md` | Multi-agent compatibility — points to CLAUDE.md, defines `.kris/tasks/` system | Codex, Cursor, Copilot, Windsurf |
+
+Both files live at the project root (not inside `memory-bank/`) but are shown in the Core Ring in KRIS UI.
+
 ## Prerequisites
 
-### Claude Code Installation
+### AI Tool Installation
 
-KRIS requires [Claude Code](https://claude.ai/code) to be installed on your system.
+KRIS works best with [Claude Code](https://claude.ai/code) but supports any AI coding assistant that reads `AGENTS.md`.
 
 **macOS / Linux / WSL:**
 
@@ -76,29 +89,36 @@ kris-base/
 ├── installer/              # Installation scripts
 │   ├── kris-install.sh     # Unix/macOS/Linux/WSL
 │   └── kris-install.ps1    # Windows PowerShell
-└── classic-approach/       # Classic file-based KRIS implementation
+├── kris-ui/                # Local web documentation viewer (Flask)
+│   ├── kris-ui.py          # Main app
+│   ├── kris-ui.md          # Authoring guide
+│   ├── templates/          # HTML templates + interactive templates
+│   └── static/             # CSS + JS
+└── classic-approach/       # KRIS implementation
     ├── scaffolder/         # CLAUDE.md templates for initial setup
-    │   ├── stable/
-    │   └── latest/
-    └── remote-templates/   # Runtime templates and commands
-        ├── stable/
-        ├── latest/
-        └── versions.json
+    └── remote-templates/   # Runtime templates, commands, and tasks
+        ├── stable/         # Stable channel
+        │   ├── commands/   # Claude Code slash commands
+        │   └── tasks/      # Agent-agnostic KRIS tasks (.kris/tasks/)
+        ├── latest/         # Latest channel (same structure)
+        └── versions.json   # Version registry and changelogs
 ```
 
 ## KRIS Commands
 
-After installation, these slash commands are available in Claude Code:
+After installation, these commands are available:
 
-| Command | Description |
-|---------|-------------|
-| `/kris` | Show status and available commands |
-| `/kris-status` | Check token usage across rings |
-| `/kris-update` | Update activeContext.md |
-| `/kris-upgrade` | Upgrade KRIS version |
-| `/kris-archive` | Archive old content to outer ring |
-| `/kris-compact` | Optimize ring content |
-| `/kris-query` | Search ring content |
+| Command | Claude Code | Other Agents | Description |
+|---------|-------------|-------------|-------------|
+| `/kris` | `.claude/commands/` | `.kris/tasks/` | Show status and available commands |
+| `/kris-status` | same | same | Check token usage across rings |
+| `/kris-update` | same | same | Update activeContext.md |
+| `/kris-upgrade` | same | same | Upgrade KRIS version |
+| `/kris-archive` | same | same | Archive old content to outer ring |
+| `/kris-compact` | same | same | Optimize ring content |
+| `/kris-query` | same | same | Search ring content |
+
+In Claude Code, use `/kris-status`. In other agents, use `run kris-status` or reference `.kris/tasks/kris-status.md`.
 
 ## Platform Support
 
@@ -115,7 +135,7 @@ After installation, these slash commands are available in Claude Code:
 - **stable** - Recommended for most users (tested, reliable)
 - **latest** - Bleeding edge (may have experimental features)
 
-Current version: **2.6**
+Current version: **3.0**
 
 ## Author
 

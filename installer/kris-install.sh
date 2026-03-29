@@ -197,6 +197,71 @@ else
     echo -e "${YELLOW}⚠ Some KRIS UI files failed to download. You can re-run the installer later.${NC}"
 fi
 
+# Download KRIS Tasks (for multi-agent support)
+echo ""
+echo -e "${CYAN}Downloading KRIS Tasks...${NC}"
+
+KRIS_TASKS_DIR=".kris/tasks"
+KRIS_TASK_FILES=(
+    "kris.md"
+    "kris-status.md"
+    "kris-update.md"
+    "kris-upgrade.md"
+    "kris-archive.md"
+    "kris-compact.md"
+    "kris-query.md"
+)
+
+mkdir -p "$KRIS_TASKS_DIR"
+
+kris_tasks_ok=true
+for file in "${KRIS_TASK_FILES[@]}"; do
+    url="${GITHUB_RAW_BASE}/remote-templates/${VERSION}/tasks/${file}"
+    dest="${KRIS_TASKS_DIR}/${file}"
+    if command -v curl &> /dev/null; then
+        curl -fsSL "$url" -o "$dest" 2>/dev/null || { echo -e "${RED}  ✗ Failed: ${file}${NC}"; kris_tasks_ok=false; }
+    elif command -v wget &> /dev/null; then
+        wget -q "$url" -O "$dest" 2>/dev/null || { echo -e "${RED}  ✗ Failed: ${file}${NC}"; kris_tasks_ok=false; }
+    fi
+done
+
+if $kris_tasks_ok; then
+    echo -e "${GREEN}✓ KRIS Tasks downloaded (${#KRIS_TASK_FILES[@]} files)${NC}"
+else
+    echo -e "${YELLOW}⚠ Some task files failed to download.${NC}"
+fi
+
+# Download AGENTS.md (non-destructive)
+echo ""
+echo -e "${CYAN}Setting up AGENTS.md...${NC}"
+
+AGENTS_URL="${GITHUB_RAW_BASE}/remote-templates/${VERSION}/AGENTS.md.base"
+
+if [ -f "AGENTS.md" ]; then
+    if grep -q "KRIS" AGENTS.md 2>/dev/null; then
+        echo -e "${GREEN}✓ AGENTS.md already has KRIS configuration${NC}"
+    else
+        # Prepend KRIS block to existing AGENTS.md
+        if command -v curl &> /dev/null; then
+            curl -fsSL "$AGENTS_URL" -o .kris-agents-block.tmp 2>/dev/null
+        elif command -v wget &> /dev/null; then
+            wget -q "$AGENTS_URL" -O .kris-agents-block.tmp 2>/dev/null
+        fi
+        if [ -f ".kris-agents-block.tmp" ] && [ -s ".kris-agents-block.tmp" ]; then
+            { cat .kris-agents-block.tmp; echo ""; echo "---"; echo ""; cat AGENTS.md; } > .kris-agents-merged.tmp
+            mv .kris-agents-merged.tmp AGENTS.md
+            rm -f .kris-agents-block.tmp
+            echo -e "${GREEN}✓ KRIS block prepended to existing AGENTS.md${NC}"
+        fi
+    fi
+else
+    if command -v curl &> /dev/null; then
+        curl -fsSL "$AGENTS_URL" -o AGENTS.md 2>/dev/null && echo -e "${GREEN}✓ AGENTS.md created${NC}"
+    elif command -v wget &> /dev/null; then
+        wget -q "$AGENTS_URL" -O AGENTS.md 2>/dev/null && echo -e "${GREEN}✓ AGENTS.md created${NC}"
+    fi
+fi
+
 # Success message and next steps
 echo ""
 echo -e "${GREEN}${BOLD}╭──────────────────────────────────────────────────────────────╮${NC}"

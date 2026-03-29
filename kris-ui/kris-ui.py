@@ -8,12 +8,13 @@ import webbrowser
 import threading
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 
 import yaml
 
 from flask import Flask, jsonify, request, abort, Response, render_template
 
-KRIS_VERSION = "2.6"
+KRIS_VERSION = "3.0"
 import markdown
 from markdown.extensions.codehilite import CodeHiliteExtension
 from pygments.formatters import HtmlFormatter
@@ -98,7 +99,7 @@ def render_markdown(raw: str) -> str:
 # Template registry
 # ---------------------------------------------------------------------------
 
-TEMPLATE_REGISTRY: dict[str, dict] = {}
+TEMPLATE_REGISTRY = {}  # type: dict
 
 
 def scan_templates():
@@ -134,15 +135,45 @@ def scan_templates():
 # File helpers
 # ---------------------------------------------------------------------------
 
-# CLAUDE.md lives at the project root (parent of memory-bank), included as virtual core file
-CLAUDE_MD_PATH = MEMORY_BANK_ROOT.parent / "CLAUDE.md"
+# Root-level files and directories included as virtual core ring entries
+PROJECT_ROOT = MEMORY_BANK_ROOT.parent
+CLAUDE_MD_PATH = PROJECT_ROOT / "CLAUDE.md"
+AGENTS_MD_PATH = PROJECT_ROOT / "AGENTS.md"
+CLAUDE_COMMANDS_DIR = PROJECT_ROOT / ".claude" / "commands"
+KRIS_TASKS_DIR = PROJECT_ROOT / ".kris" / "tasks"
+
+# Static virtual path mappings
+VIRTUAL_CORE_FILES = {
+    "core/CLAUDE.md": CLAUDE_MD_PATH,
+    "core/AGENTS.md": AGENTS_MD_PATH,
+}
+
+
+def resolve_virtual_path(requested_path: str) -> Optional[Path]:
+    """Resolve a virtual core path to a real filesystem path."""
+    # Static mappings
+    if requested_path in VIRTUAL_CORE_FILES:
+        p = VIRTUAL_CORE_FILES[requested_path]
+        return p if p.exists() else None
+    # Dynamic: .claude/commands/ files
+    if requested_path.startswith("core/.claude/commands/"):
+        fname = requested_path[len("core/.claude/commands/"):]
+        p = CLAUDE_COMMANDS_DIR / fname
+        return p if p.exists() and p.suffix == ".md" else None
+    # Dynamic: .kris/tasks/ files
+    if requested_path.startswith("core/.kris/tasks/"):
+        fname = requested_path[len("core/.kris/tasks/"):]
+        p = KRIS_TASKS_DIR / fname
+        return p if p.exists() and p.suffix == ".md" else None
+    return None
 
 
 def safe_resolve(requested_path: str) -> Path:
-    """Resolve a relative path safely within MEMORY_BANK_ROOT (+ virtual CLAUDE.md)."""
-    # Virtual path: core/CLAUDE.md maps to project root CLAUDE.md
-    if requested_path == "core/CLAUDE.md" and CLAUDE_MD_PATH.exists():
-        return CLAUDE_MD_PATH
+    """Resolve a relative path safely within MEMORY_BANK_ROOT (+ virtual core files)."""
+    # Check virtual paths first
+    virtual = resolve_virtual_path(requested_path)
+    if virtual:
+        return virtual
     resolved = (MEMORY_BANK_ROOT / requested_path).resolve()
     if not str(resolved).startswith(str(MEMORY_BANK_ROOT)):
         abort(403)
@@ -168,7 +199,7 @@ def relative_time(ts: float) -> str:
 
 
 RING_DEFAULT_FILES = {
-    "core": {"README.md", "projectBrief.md", "productContext.md", "techContext.md", "CLAUDE.md"},
+    "core": {"README.md", "projectBrief.md", "productContext.md", "techContext.md", "CLAUDE.md", "AGENTS.md"},
     "inner": {"README.md", "activeContext.md", "progress.md"},
     "middle": {"README.md"},
     "outer": {"README.md"},
@@ -182,7 +213,12 @@ def file_meta(filepath: Path, ring_name: str, virtual_path: str = "") -> dict:
     tokens = round(words * 1.3)
     if virtual_path:
         rel = virtual_path
-        folder = ""
+        # Extract folder from virtual path (e.g. "core/.claude/commands/kris.md" → ".claude/commands")
+        parts = virtual_path.split("/")
+        if len(parts) > 2:
+            folder = "/".join(parts[1:-1])  # skip ring prefix and filename
+        else:
+            folder = ""
     else:
         rel = str(filepath.relative_to(MEMORY_BANK_ROOT))
         ring_dir = MEMORY_BANK_ROOT / ring_name
@@ -207,15 +243,60 @@ def file_meta(filepath: Path, ring_name: str, virtual_path: str = "") -> dict:
     }
 
 
+def _placeholder(folder: str, message: str) -> dict:
+    """Create a placeholder entry for empty command/task directories."""
+    return {
+        "path": "",
+        "name": message,
+        "ring": "core",
+        "folder": folder,
+        "is_default": False,
+        "size_bytes": 0,
+        "modified_ts": 0,
+        "modified_relative": "",
+        "modified_iso": "",
+        "words": 0,
+        "tokens": 0,
+        "placeholder": True,
+    }
+
+
 def get_ring_files(ring_name: str) -> list[dict]:
     ring_dir = MEMORY_BANK_ROOT / ring_name
     if not ring_dir.is_dir():
         return []
     files = sorted(ring_dir.rglob("*.md"), key=lambda p: str(p))
     result = [file_meta(f, ring_name) for f in files]
-    # Include CLAUDE.md in the core ring (lives at project root, outside memory-bank)
-    if ring_name == "core" and CLAUDE_MD_PATH.exists():
-        result.insert(0, file_meta(CLAUDE_MD_PATH, "core", virtual_path="core/CLAUDE.md"))
+    # Include root-level files in the core ring (live at project root, outside memory-bank)
+    if ring_name == "core":
+        # .kris/tasks/ files
+        if KRIS_TASKS_DIR.is_dir():
+            task_files = sorted(KRIS_TASKS_DIR.glob("*.md"))
+            if task_files:
+                for tf in task_files:
+                    result.append(file_meta(tf, "core",
+                        virtual_path=f"core/.kris/tasks/{tf.name}"))
+            else:
+                result.append(_placeholder(".kris/tasks", "No tasks installed"))
+        else:
+            result.append(_placeholder(".kris/tasks", "No tasks installed"))
+        # .claude/commands/ files
+        if CLAUDE_COMMANDS_DIR.is_dir():
+            cmd_files = sorted(CLAUDE_COMMANDS_DIR.glob("*.md"))
+            if cmd_files:
+                for cf in cmd_files:
+                    result.append(file_meta(cf, "core",
+                        virtual_path=f"core/.claude/commands/{cf.name}"))
+            else:
+                result.append(_placeholder(".claude/commands", "No commands installed"))
+        else:
+            result.append(_placeholder(".claude/commands", "No commands installed"))
+        # AGENTS.md
+        if AGENTS_MD_PATH.exists():
+            result.insert(0, file_meta(AGENTS_MD_PATH, "core", virtual_path="core/AGENTS.md"))
+        # CLAUDE.md
+        if CLAUDE_MD_PATH.exists():
+            result.insert(0, file_meta(CLAUDE_MD_PATH, "core", virtual_path="core/CLAUDE.md"))
     return result
 
 
@@ -245,7 +326,7 @@ def parse_frontmatter(content: str) -> list[dict]:
     return pairs
 
 
-def parse_yaml_frontmatter(content: str) -> dict | None:
+def parse_yaml_frontmatter(content: str) -> Optional[dict]:
     """Extract YAML frontmatter from --- delimited block at start of file."""
     stripped = content.lstrip()
     if not stripped.startswith("---"):
@@ -281,15 +362,28 @@ def search_files(query: str) -> list[dict]:
         ring_dir = MEMORY_BANK_ROOT / ring_name
         if not ring_dir.is_dir():
             continue
-        # Include virtual files (CLAUDE.md in core)
+        # Include virtual files (CLAUDE.md, AGENTS.md, commands, tasks in core)
         md_files = list(ring_dir.rglob("*.md"))
-        if ring_name == "core" and CLAUDE_MD_PATH.exists():
-            md_files.insert(0, CLAUDE_MD_PATH)
+        if ring_name == "core":
+            if AGENTS_MD_PATH.exists():
+                md_files.insert(0, AGENTS_MD_PATH)
+            if CLAUDE_MD_PATH.exists():
+                md_files.insert(0, CLAUDE_MD_PATH)
+            if CLAUDE_COMMANDS_DIR.is_dir():
+                md_files.extend(sorted(CLAUDE_COMMANDS_DIR.glob("*.md")))
+            if KRIS_TASKS_DIR.is_dir():
+                md_files.extend(sorted(KRIS_TASKS_DIR.glob("*.md")))
         for fp in md_files:
             content = fp.read_text(encoding="utf-8", errors="replace")
             # Virtual files live outside MEMORY_BANK_ROOT
             if fp == CLAUDE_MD_PATH:
                 rel = "core/CLAUDE.md"
+            elif fp == AGENTS_MD_PATH:
+                rel = "core/AGENTS.md"
+            elif CLAUDE_COMMANDS_DIR.is_dir() and str(fp).startswith(str(CLAUDE_COMMANDS_DIR)):
+                rel = f"core/.claude/commands/{fp.name}"
+            elif KRIS_TASKS_DIR.is_dir() and str(fp).startswith(str(KRIS_TASKS_DIR)):
+                rel = f"core/.kris/tasks/{fp.name}"
             else:
                 rel = str(fp.relative_to(MEMORY_BANK_ROOT))
             lower_content = content.lower()
@@ -537,4 +631,5 @@ if __name__ == "__main__":
     print(f"  Press Ctrl+C to stop\n")
 
     threading.Thread(target=open_browser, daemon=True).start()
-    app.run(host="127.0.0.1", port=PORT, debug=False)
+    host = os.environ.get("KRIS_UI_HOST", "0.0.0.0")
+    app.run(host=host, port=PORT, debug=False)

@@ -7,6 +7,7 @@ let activeRing = null;
 let activeFile = null;
 let treeFocusIdx = -1;
 let interactiveMeta = {}; // path -> [template_ids]
+let folderStates = {}; // fid -> true (expanded) | false (collapsed); null = use default
 
 // --- Theme ---
 function initTheme() {
@@ -129,15 +130,23 @@ function renderFileTree(ring) {
   }
 
   // Render folder groups
+  const folderLabels = {
+    '.claude/commands': '&#x2318; Commands (Claude)',
+    '.kris/tasks': '&#x2318; Tasks (Multi-Agent)',
+  };
+  const collapsedByDefault = new Set(['.claude/commands', '.kris/tasks']);
   folderKeys.forEach(folder => {
     const fid = 'folder-' + folder.replace(/[^a-zA-Z0-9]/g, '-');
+    const label = folderLabels[folder] || `&#x1F4C1; ${folder}`;
+    // Use persisted state if available, otherwise use default
+    const isCollapsed = fid in folderStates ? !folderStates[fid] : collapsedByDefault.has(folder);
     html += `<div class="folder-group">
       <div class="folder-header" onclick="toggleFolder('${fid}')">
-        <span class="folder-chevron open" id="${fid}-chev">&#x25B6;</span>
-        &#x1F4C1; ${folder}
+        <span class="folder-chevron${isCollapsed ? '' : ' open'}" id="${fid}-chev">&#x25B6;</span>
+        ${label}
         <span style="margin-left:auto;font-weight:400;font-size:10px;color:var(--text-muted)">${folders[folder].length}</span>
       </div>
-      <div class="folder-children" id="${fid}">
+      <div class="folder-children${isCollapsed ? ' collapsed' : ''}" id="${fid}">
         ${folders[folder].map(f => renderFileItem(f, 'custom')).join('')}
       </div>
     </div>`;
@@ -147,10 +156,23 @@ function renderFileTree(ring) {
 }
 
 function renderFileItem(f, badge) {
+  // Placeholder items (empty directories)
+  if (f.placeholder) {
+    return `<div class="file-item" style="opacity:0.4;cursor:default;font-style:italic">
+      <span class="file-icon" style="opacity:0.3">&#x2205;</span>
+      <span class="file-name">${f.name}</span>
+    </div>`;
+  }
   const isActive = activeFile === f.path;
-  const badgeHtml = badge === 'default'
-    ? '<span class="file-badge default">def</span>'
-    : '<span class="file-badge custom">+</span>';
+  const isRootFile = f.name === 'CLAUDE.md' || f.name === 'AGENTS.md';
+  let badgeHtml;
+  if (isRootFile) {
+    badgeHtml = '<span class="file-badge root" title="Project root file">root</span>';
+  } else if (badge === 'default') {
+    badgeHtml = '<span class="file-badge default">def</span>';
+  } else {
+    badgeHtml = '<span class="file-badge custom">+</span>';
+  }
   const interactiveBadge = interactiveMeta[f.path]
     ? '<span class="file-badge interactive" title="Has interactive view">&#x26A1;</span>'
     : '';
@@ -169,9 +191,11 @@ function toggleFolder(fid) {
   if (children.classList.contains('collapsed')) {
     children.classList.remove('collapsed');
     chev.classList.add('open');
+    folderStates[fid] = true;
   } else {
     children.classList.add('collapsed');
     chev.classList.remove('open');
+    folderStates[fid] = false;
   }
 }
 

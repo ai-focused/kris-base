@@ -461,6 +461,10 @@ kbd {
   background: rgba(76,175,80,.12);
   color: #6fcf73;
 }
+.file-badge.root {
+  background: rgba(212,168,67,.15);
+  color: #D4A843;
+}
 
 /* Folder groups */
 .folder-group {

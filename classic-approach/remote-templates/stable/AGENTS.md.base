@@ -1,0 +1,89 @@
+# AGENTS.md
+
+> This project uses **KRIS** (Knowledge Rings Information System) for persistent AI memory.
+> Full engineering standards and project rules: [CLAUDE.md](CLAUDE.md)
+
+---
+
+## KRIS Memory Structure
+
+| Ring | Path | Budget | Purpose |
+|------|------|--------|---------|
+| Core | `memory-bank/core/` | ~15k tokens | Project identity, quick reference |
+| Inner | `memory-bank/inner/` | ~30k tokens | Active work, current progress |
+| Middle | `memory-bank/middle/` | ~50k/file | System docs, architecture, specs |
+| Outer | `memory-bank/outer/` | Unlimited | Archive, historical docs |
+
+`CLAUDE.md` at the project root contains engineering standards, security rules, and project context.
+
+---
+
+## Task System
+
+Reusable task specifications are located in:
+
+```
+.kris/tasks/
+```
+
+### Invocation
+
+When user input matches `run <task>`, `/kris-<task>`, or `kris-<task>`:
+
+1. Load `.kris/tasks/<task>.md`
+2. Follow TASK, INPUTS, REQUIREMENTS, OUTPUT, CONSTRAINTS strictly
+3. Execute fully — do not skip steps
+
+Example: `run kris-status` → load `.kris/tasks/kris-status.md`
+
+### Available Tasks
+
+| Task | Description |
+|------|-------------|
+| `kris` | Show KRIS status, ring overview, available tasks |
+| `kris-status` | Token usage across rings with visual indicators |
+| `kris-status <ring>` | Per-file breakdown for a specific ring |
+| `kris-update` | Update activeContext.md with session progress |
+| `kris-upgrade` | Upgrade KRIS to latest version |
+| `kris-archive` | Archive completed work to Outer Ring |
+| `kris-compact` | Optimize ring content, suggest cleanup |
+| `kris-query <ring> <topic>` | Search ring for information |
+
+---
+
+## Key Rules (from CLAUDE.md)
+
+### File Handling
+- Read full file before editing
+- Search for existing implementations before creating new code
+- Prefer modifying existing files over creating new ones
+
+### Security
+- Never trust user input — validate type, format, range
+- Use parameterized queries, never string concatenation
+- Never expose secrets in code
+
+### Quality
+- Build/test after every change
+- Remove debug code before finalizing
+- Prefer minimal, correct solutions
+
+For the complete rule set, read [CLAUDE.md](CLAUDE.md).
+
+---
+
+## KRIS UI
+
+Local web viewer for KRIS documentation: `cd memory-bank/kris-ui && .venv/bin/python3 kris-ui.py`
+
+See [kris-ui.md](memory-bank/kris-ui/kris-ui.md) for authoring rules and interactive template format specs.
+
+---
+
+## Constraints
+
+- Do not hallucinate file contents — read before referencing
+- Do not skip required steps in tasks
+- Prefer structured outputs over free text
+- Follow task specifications exactly
+- Exclude `memory-bank/kris-ui/` from ring analysis
