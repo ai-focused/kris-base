@@ -144,12 +144,16 @@ $KRIS_UI_FILES = @(
     "templates/interactive/dependency-graph/format.md",
     "templates/interactive/flow-diagram/manifest.json",
     "templates/interactive/flow-diagram/template.html",
-    "templates/interactive/flow-diagram/format.md"
+    "templates/interactive/flow-diagram/format.md",
+    "templates/interactive/entity-relationship/manifest.json",
+    "templates/interactive/entity-relationship/template.html",
+    "templates/interactive/entity-relationship/format.md"
 )
 
 # Create directory structure
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\dependency-graph" | Out-Null
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\flow-diagram" | Out-Null
+New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\entity-relationship" | Out-Null
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\static\css" | Out-Null
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\static\js" | Out-Null
 

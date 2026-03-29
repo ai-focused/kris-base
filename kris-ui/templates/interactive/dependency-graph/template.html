@@ -22,12 +22,19 @@
     border-radius: 8px;
     background: var(--bg-card);
     border: 1.5px solid var(--border);
-    cursor: pointer;
+    cursor: grab;
     transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
     user-select: none;
     z-index: 2;
     min-width: 120px;
     text-align: center;
+  }
+  .node.dragging {
+    cursor: grabbing;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    transform: none;
+    transition: none;
   }
   .node:hover {
     border-color: var(--accent);
@@ -391,27 +398,6 @@
     `;
     detail.querySelectorAll('.dep-link').forEach(link => link.addEventListener('click', () => selectModule(link.dataset.target)));
     document.getElementById('panel-close').addEventListener('click', deselectAll);
-
-    // Re-layout to account for panel width
-    positions = computeLayout(allModules, allEdges);
-    renderNodes(); renderEdges();
-    // Re-highlight after re-render
-    document.querySelectorAll('.node').forEach(n => {
-      n.classList.remove('selected', 'dep-highlight', 'dimmed');
-      const nid = n.dataset.id;
-      if (nid === id) n.classList.add('selected');
-      else if (relatedIds.has(nid)) n.classList.add('dep-highlight');
-      else n.classList.add('dimmed');
-    });
-    document.querySelectorAll('#edges line').forEach(line => {
-      const f = line.getAttribute('data-from'), t = line.getAttribute('data-to');
-      if (f === id || t === id) {
-        line.style.opacity = '1'; line.setAttribute('stroke', 'var(--accent)');
-        line.setAttribute('stroke-width', '2'); line.setAttribute('marker-end', 'url(#arrow-hl)');
-      } else {
-        line.style.opacity = '0.12';
-      }
-    });
   }
 
   function deselectAll() {
@@ -422,8 +408,6 @@
       line.setAttribute('stroke-width', '1.5'); line.setAttribute('marker-end', 'url(#arrow)');
     });
     document.getElementById('detail').classList.add('hidden');
-    positions = computeLayout(allModules, allEdges);
-    renderNodes(); renderEdges();
   }
 
   // ---- Filters ----
@@ -444,6 +428,56 @@
   });
 
   // ---- Init ----
+  // ---- Drag & Drop ----
+  let dragState = null;
+
+  function initDrag() {
+    const container = document.getElementById('nodes');
+
+    container.addEventListener('mousedown', e => {
+      const nodeEl = e.target.closest('.node');
+      if (!nodeEl) return;
+      e.preventDefault();
+      const id = nodeEl.dataset.id;
+      const rect = nodeEl.getBoundingClientRect();
+      dragState = {
+        el: nodeEl,
+        id: id,
+        offsetX: e.clientX - rect.left,
+        offsetY: e.clientY - rect.top,
+        moved: false,
+      };
+      nodeEl.classList.add('dragging');
+      document.body.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!dragState) return;
+      e.preventDefault();
+      dragState.moved = true;
+      const canvas = document.getElementById('canvas-area');
+      const canvasRect = canvas.getBoundingClientRect();
+      const x = e.clientX - canvasRect.left - dragState.offsetX + 65;
+      const y = e.clientY - canvasRect.top - dragState.offsetY + 22;
+      dragState.el.style.left = (x - 65) + 'px';
+      dragState.el.style.top = (y - 22) + 'px';
+      positions[dragState.id] = { x: x, y: y };
+      renderEdges();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!dragState) return;
+      dragState.el.classList.remove('dragging');
+      document.body.style.cursor = '';
+      if (dragState.moved) {
+        const el = dragState.el;
+        const suppress = e => { e.stopPropagation(); el.removeEventListener('click', suppress, true); };
+        el.addEventListener('click', suppress, true);
+      }
+      dragState = null;
+    });
+  }
+
   async function init() {
     try {
       const raw = await KRISInteractive.fetchRaw(src);
@@ -462,6 +496,7 @@
       positions = computeLayout(allModules, allEdges);
       document.getElementById('loading').style.display = 'none';
       renderNodes(); renderEdges();
+      initDrag();
 
       document.getElementById('canvas-area').addEventListener('click', e => {
         if (e.target === e.currentTarget || e.target.tagName === 'svg' || e.target.id === 'nodes') deselectAll();

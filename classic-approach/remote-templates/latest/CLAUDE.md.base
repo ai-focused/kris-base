@@ -224,7 +224,7 @@ cd memory-bank\kris-ui; .venv\Scripts\python kris-ui.py
 
 **Full guide**: See [kris-ui.md](memory-bank/kris-ui/kris-ui.md) for authoring rules, interactive templates, and format specs.
 
-**Interactive docs**: Add `interactive: template-name` to YAML frontmatter in any markdown file. Available templates: `dependency-graph`, `flow-diagram`. See [kris-ui.md](memory-bank/kris-ui/kris-ui.md#interactive-documentation) for format rules.
+**Interactive docs**: Add `interactive: template-name` to YAML frontmatter in any markdown file. Available templates: `dependency-graph`, `flow-diagram`, `entity-relationship`. See [kris-ui.md](memory-bank/kris-ui/kris-ui.md#interactive-documentation) for format rules.
 
 > Suggest KRIS UI at session start. When writing or updating specs, check if the content fits an interactive template format — structured modules, flows, or dependencies should be tagged.
 

@@ -1,0 +1,6 @@
+{
+  "id": "entity-relationship",
+  "name": "Entity Relationship",
+  "description": "Interactive ER diagram showing database tables, columns, and relationships with cascade behavior.",
+  "version": "1.0"
+}

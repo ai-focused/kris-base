@@ -47,6 +47,7 @@ Update activeContext.md with current session progress.
    For each Middle Ring spec file modified in this session, check:
    - Does it have structured `## Modules` with `### Name` + `**ID**`, `**Purpose**`, `**Depends on**`, `**Phase**` fields? → Suggest `interactive: dependency-graph`
    - Does it have `## User Flows` with `### Flow N: Name` + step tables? → Suggest `interactive: flow-diagram`
+   - Does it have `## Tables` with `### table_name` + column tables (Column, Type, Constraints)? → Suggest `interactive: entity-relationship`
    - Does it already have an `interactive:` frontmatter tag that no longer matches the content? → Suggest removing it
 
    If opportunities found, ask:

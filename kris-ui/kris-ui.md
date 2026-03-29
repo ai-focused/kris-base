@@ -113,6 +113,36 @@ Renders user flows as horizontal step sequences with module badges.
 
 ---
 
+#### `entity-relationship`
+
+Renders database tables as an interactive ER diagram with relationship lines and column details.
+
+**Required section**: `## Tables` with `### table_name` sub-headings.
+
+Each table needs a column table:
+
+```markdown
+### `users`
+
+Optional description text.
+
+| Column    | Type      | Constraints          | Notes            |
+|-----------|-----------|----------------------|------------------|
+| `id`      | `text`    | PK                   | cuid2            |
+| `userId`  | `text`    | FK → users, CASCADE  | not null         |
+| `email`   | `text`    | unique, not null     | Login identifier |
+
+**Indexes**: `email` (unique)
+```
+
+**Optional section**: `## Relationship Summary` — table with Relationship, Type, Cascade columns. If missing, relationships are inferred from FK constraints.
+
+**Optional section**: `## MVP vs Post-MVP` — table marking which tables are MVP vs Post-MVP.
+
+**Behaviors**: Interactive ER diagram, click table for detail panel (columns, types, constraints, indexes, relationships), relationship lines with type labels (1:N, 1:1, N:M), cascade info, MVP/Post-MVP filter.
+
+---
+
 ### Writing Interactive-Compatible Specs
 
 When writing or updating specs in the Middle Ring, consider whether the content fits an interactive template:
@@ -121,6 +151,7 @@ When writing or updating specs in the Middle Ring, consider whether the content 
 |--------------------|--------------------------|
 | Modules with dependencies, IDs, phases | `dependency-graph` |
 | User flows with steps, screens, modules | `flow-diagram` |
+| Database tables with columns, FKs, relationships | `entity-relationship` |
 | Both modules AND flows | `interactive: [dependency-graph, flow-diagram]` |
 
 **Key principles**:

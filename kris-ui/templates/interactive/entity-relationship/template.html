@@ -1,0 +1,755 @@
+{% extends "interactive/base.html" %}
+{% block title %}Entity Relationship Diagram{% endblock %}
+{% block toolbar_title %}Entity Relationship Diagram{% endblock %}
+
+{% block head %}
+<style>
+  #er-canvas {
+    flex: 1;
+    position: relative;
+    overflow: auto;
+    height: 100%;
+    min-height: 100%;
+  }
+  #er-canvas svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  #tables-container {
+    position: relative;
+    z-index: 2;
+    padding: 40px;
+    min-width: max-content;
+    min-height: max-content;
+  }
+
+  /* Table nodes */
+  .er-table {
+    position: absolute;
+    min-width: 220px;
+    max-width: 320px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: grab;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    user-select: none;
+  }
+  .er-table.dragging {
+    cursor: grabbing;
+    z-index: 100;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    transition: none;
+  }
+  .er-table:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 16px rgba(124,92,255,0.15);
+  }
+  .er-table.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 24px rgba(124,92,255,0.25);
+  }
+  .er-table.related {
+    border-color: rgba(124,92,255,0.4);
+    box-shadow: 0 0 12px rgba(124,92,255,0.1);
+  }
+  .er-table.dimmed { opacity: 0.2; }
+
+  .er-table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .er-table-header .phase-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .er-table-header .phase-dot.mvp { background: var(--mvp-color); }
+  .er-table-header .phase-dot.post-mvp { background: var(--post-mvp-color); }
+
+  .er-columns {
+    padding: 6px 0;
+    font-size: 11px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .er-col {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 14px;
+    color: var(--text-secondary);
+  }
+  .er-col:hover { background: var(--bg-hover); }
+  .er-col-name {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+  .er-col-type {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+  .er-col-icon {
+    font-size: 10px;
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+  }
+  .er-col-icon.pk { color: #facc15; }
+  .er-col-icon.fk { color: var(--accent); }
+  .er-col-icon.unique { color: var(--mvp-color); }
+
+  .er-indexes {
+    padding: 6px 14px;
+    border-top: 1px solid var(--border);
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  /* Detail panel */
+  #detail {
+    width: 380px;
+    min-width: 380px;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 24px;
+    transition: transform 0.3s, width 0.3s, min-width 0.3s, padding 0.3s;
+    position: relative;
+  }
+  #detail.hidden {
+    transform: translateX(100%);
+    width: 0; min-width: 0; padding: 0; overflow: hidden;
+  }
+  #detail h2 {
+    font-size: 18px; font-weight: 700; margin-bottom: 4px;
+    font-family: var(--font-mono);
+  }
+  .detail-desc {
+    font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;
+  }
+  .detail-section { margin-bottom: 16px; }
+  .detail-section h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted); margin-bottom: 8px;
+  }
+  .detail-col-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  .detail-col-table th {
+    text-align: left; padding: 4px 8px; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-muted); border-bottom: 1px solid var(--border);
+  }
+  .detail-col-table td {
+    padding: 4px 8px; border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: 11px;
+  }
+  .detail-col-table td:first-child { color: var(--text-primary); font-weight: 500; }
+  .detail-col-table td:nth-child(2) { color: var(--text-muted); }
+
+  .rel-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; font-size: 12px;
+  }
+  .rel-type {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--accent); min-width: 30px;
+  }
+  .rel-target {
+    color: var(--accent); cursor: pointer; font-weight: 500;
+  }
+  .rel-target:hover { text-decoration: underline; }
+  .rel-cascade { color: var(--text-muted); font-size: 11px; margin-left: auto; }
+
+  .panel-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: var(--text-muted); font-size: 18px; cursor: pointer; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .panel-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+  /* Legend */
+  #legend {
+    position: fixed; bottom: 16px; left: 16px;
+    display: flex; gap: 16px; z-index: 10; font-size: 11px; color: var(--text-muted);
+  }
+  #legend span { display: flex; align-items: center; gap: 5px; }
+  #legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  #loading {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-size: 14px; color: var(--text-muted); z-index: 20;
+  }
+</style>
+{% endblock %}
+
+{% block toolbar_controls %}
+<div style="display:flex;gap:8px" id="filters">
+  <button class="filter-chip active" data-filter="all">All</button>
+  <button class="filter-chip" data-filter="mvp">MVP Only</button>
+</div>
+<a class="toolbar-btn" href="/" title="Back to KRIS">Back to KRIS</a>
+{% endblock %}
+
+{% block body %}
+<div style="display:flex;height:100%">
+  <div id="er-canvas">
+    <svg id="edges"></svg>
+    <div id="tables-container"></div>
+    <div id="legend">
+      <span><span class="dot" style="background:var(--mvp-color)"></span> MVP</span>
+      <span><span class="dot" style="background:var(--post-mvp-color)"></span> Post-MVP</span>
+      <span style="font-family:var(--font-mono)">PK <span style="color:#facc15">&#9670;</span> &nbsp; FK <span style="color:var(--accent)">&#8594;</span> &nbsp; UQ <span style="color:var(--mvp-color)">&#9679;</span></span>
+      <span>Click table for details</span>
+    </div>
+    <div id="loading">Loading schema...</div>
+  </div>
+  <div id="detail" class="hidden"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  'use strict';
+  const src = KRISInteractive.getQueryParam('src');
+  if (!src) {
+    KRISInteractive.showError(document.getElementById('er-canvas'), 'No source file', 'Pass ?src=path/to/file.md');
+    return;
+  }
+
+  // ---- Parsers ----
+  function parseTables(md) {
+    const tables = [];
+    const section = md.split(/^## Tables$/m)[1];
+    if (!section) return tables;
+    const end = section.search(/^## (?!Tables)/m);
+    const content = end > -1 ? section.slice(0, end) : section;
+    const blocks = content.split(/^### /m).filter(b => b.trim());
+
+    for (const block of blocks) {
+      const lines = block.split('\n');
+      const rawName = lines[0].trim().replace(/`/g, '');
+      const description = [];
+      let tableStarted = false;
+      const columns = [];
+      let indexes = '';
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.trim().startsWith('|') && !tableStarted) {
+          tableStarted = true;
+        }
+        if (line.trim().startsWith('**Indexes**')) {
+          indexes = line.replace(/\*\*Indexes\*\*:\s*/, '').trim();
+          continue;
+        }
+        if (tableStarted && line.trim().startsWith('|')) {
+          if (line.includes('---')) continue; // separator
+          const cells = line.split('|').map(c => c.trim()).filter(c => c);
+          // Skip header row
+          if (cells[0] && (cells[0].toLowerCase() === 'column' || cells[0].toLowerCase() === '`column`')) continue;
+          if (cells.length >= 2) {
+            const colName = cells[0].replace(/`/g, '');
+            const colType = cells[1].replace(/`/g, '');
+            const constraints = cells[2] || '';
+            const notes = cells[3] || '';
+            const isPK = constraints.includes('PK');
+            const fkMatch = constraints.match(/FK\s*[→→]\s*(\w+)/);
+            const isUnique = constraints.toLowerCase().includes('unique');
+            columns.push({
+              name: colName, type: colType, constraints, notes,
+              isPK, isFK: !!fkMatch, fkTarget: fkMatch ? fkMatch[1] : null,
+              isUnique, isNullable: constraints.toLowerCase().includes('nullable'),
+            });
+          }
+        } else if (!tableStarted && line.trim() && !line.trim().startsWith('---')) {
+          description.push(line.trim());
+        }
+      }
+
+      if (columns.length > 0) {
+        tables.push({
+          name: rawName,
+          description: description.join(' '),
+          columns, indexes,
+          phase: 'mvp', // default, overridden by MVP table if present
+        });
+      }
+    }
+    return tables;
+  }
+
+  function parseRelationships(md) {
+    const rels = [];
+    const section = md.split(/^## Relationship Summary$/m)[1];
+    if (!section) return rels;
+    const end = section.search(/^## /m);
+    const content = end > -1 ? section.slice(0, end) : section;
+    const tableLines = content.split('\n').filter(l => l.trim().startsWith('|') && !l.includes('---'));
+
+    // Skip header
+    for (let i = 1; i < tableLines.length; i++) {
+      const cells = tableLines[i].split('|').map(c => c.trim()).filter(c => c);
+      if (cells.length >= 2) {
+        const relMatch = cells[0].match(/(\w+)\s*[→→]\s*(\w+)/);
+        if (relMatch) {
+          rels.push({
+            from: relMatch[1],
+            to: relMatch[2],
+            type: cells[1] || '',
+            cascade: cells[2] || '',
+          });
+        }
+      }
+    }
+    return rels;
+  }
+
+  function parseMVPTable(md) {
+    const phases = {};
+    const section = md.split(/^## MVP vs Post-MVP$/m)[1];
+    if (!section) return phases;
+    const end = section.search(/^## /m);
+    const content = end > -1 ? section.slice(0, end) : section;
+    const tableLines = content.split('\n').filter(l => l.trim().startsWith('|') && !l.includes('---'));
+
+    for (let i = 1; i < tableLines.length; i++) {
+      const cells = tableLines[i].split('|').map(c => c.trim()).filter(c => c);
+      if (cells.length >= 2) {
+        const name = cells[0].replace(/`/g, '');
+        const isMvp = cells[1] && cells[1].toLowerCase().includes('yes');
+        const isPostMvp = cells[2] && cells[2].toLowerCase().includes('yes');
+        phases[name] = isPostMvp ? 'post-mvp' : 'mvp';
+      }
+    }
+    return phases;
+  }
+
+  function inferRelationships(tables) {
+    const rels = [];
+    for (const table of tables) {
+      for (const col of table.columns) {
+        if (col.isFK && col.fkTarget) {
+          const cascadeMatch = col.constraints.match(/(CASCADE|SET NULL|RESTRICT|NO ACTION)/i);
+          rels.push({
+            from: table.name,
+            to: col.fkTarget,
+            type: col.isUnique ? '1:1' : '1:N',
+            cascade: cascadeMatch ? `ON DELETE ${cascadeMatch[1]}` : '',
+            inferredFrom: col.name,
+          });
+        }
+      }
+    }
+    return rels;
+  }
+
+  // ---- Layout ----
+  function computeLayout(tables, relationships) {
+    // Group tables by connectivity. Place referenced tables (targets) higher.
+    const names = tables.map(t => t.name);
+    const inbound = {};
+    names.forEach(n => inbound[n] = 0);
+    for (const r of relationships) {
+      if (inbound[r.to] !== undefined) inbound[r.to]++;
+    }
+
+    // Sort: most referenced first (hubs at top)
+    const sorted = [...names].sort((a, b) => inbound[b] - inbound[a]);
+
+    // Grid layout
+    const cols = Math.max(3, Math.ceil(Math.sqrt(sorted.length)));
+    const positions = {};
+    const colWidth = 280;
+    const rowHeight = 300;
+    const offsetX = 60;
+    const offsetY = 40;
+
+    sorted.forEach((name, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      positions[name] = {
+        x: offsetX + col * colWidth,
+        y: offsetY + row * rowHeight,
+      };
+    });
+
+    return positions;
+  }
+
+  // ---- Render ----
+  let allTables = [], allRels = [], positions = {}, selectedTable = null;
+
+  function renderTables() {
+    const container = document.getElementById('tables-container');
+    container.innerHTML = '';
+    for (const table of allTables) {
+      const pos = positions[table.name];
+      if (!pos) continue;
+
+      const div = document.createElement('div');
+      div.className = 'er-table';
+      div.dataset.name = table.name;
+      div.style.left = pos.x + 'px';
+      div.style.top = pos.y + 'px';
+
+      const isMvp = table.phase !== 'post-mvp';
+      const colsHtml = table.columns.map(col => {
+        let icon = '';
+        if (col.isPK) icon = '<span class="er-col-icon pk">&#9670;</span>';
+        else if (col.isFK) icon = '<span class="er-col-icon fk">&#8594;</span>';
+        else if (col.isUnique) icon = '<span class="er-col-icon unique">&#9679;</span>';
+        else icon = '<span class="er-col-icon"></span>';
+        return `<div class="er-col">${icon}<span class="er-col-name">${col.name}</span><span class="er-col-type">${col.type}</span></div>`;
+      }).join('');
+
+      div.innerHTML = `
+        <div class="er-table-header">
+          ${table.name}
+          <span class="phase-dot ${isMvp ? 'mvp' : 'post-mvp'}" title="${isMvp ? 'MVP' : 'Post-MVP'}"></span>
+        </div>
+        <div class="er-columns">${colsHtml}</div>
+        ${table.indexes ? `<div class="er-indexes">IDX: ${table.indexes}</div>` : ''}
+      `;
+
+      div.addEventListener('click', e => { e.stopPropagation(); selectTable(table.name); });
+      container.appendChild(div);
+    }
+
+    // Set container size for scrolling
+    let maxX = 0, maxY = 0;
+    allTables.forEach(t => {
+      const p = positions[t.name];
+      if (p) { maxX = Math.max(maxX, p.x + 340); maxY = Math.max(maxY, p.y + 320); }
+    });
+    container.style.width = maxX + 'px';
+    container.style.height = maxY + 'px';
+  }
+
+  function renderEdges() {
+    const svg = document.getElementById('edges');
+    const canvas = document.getElementById('er-canvas');
+    svg.style.width = document.getElementById('tables-container').style.width;
+    svg.style.height = document.getElementById('tables-container').style.height;
+    svg.innerHTML = '';
+
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    ['er-arrow', 'er-arrow-hl'].forEach((id, i) => {
+      const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+      marker.setAttribute('id', id); marker.setAttribute('markerWidth', '8'); marker.setAttribute('markerHeight', '6');
+      marker.setAttribute('refX', '8'); marker.setAttribute('refY', '3'); marker.setAttribute('orient', 'auto');
+      const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+      poly.setAttribute('points', '0 0, 8 3, 0 6');
+      poly.setAttribute('fill', i === 0 ? 'var(--border-light)' : 'var(--accent)');
+      marker.appendChild(poly); defs.appendChild(marker);
+    });
+    svg.appendChild(defs);
+
+    for (const rel of allRels) {
+      const fromPos = positions[rel.from];
+      const toPos = positions[rel.to];
+      if (!fromPos || !toPos) continue;
+
+      const fromEl = document.querySelector(`.er-table[data-name="${rel.from}"]`);
+      const toEl = document.querySelector(`.er-table[data-name="${rel.to}"]`);
+      if (!fromEl || !toEl) continue;
+
+      const fromW = fromEl.offsetWidth;
+      const fromH = fromEl.offsetHeight;
+      const toW = toEl.offsetWidth;
+      const toH = toEl.offsetHeight;
+
+      // Connect from right edge of source to left edge of target (or top/bottom if vertically aligned)
+      let x1, y1, x2, y2;
+      const fromCX = fromPos.x + fromW / 2;
+      const fromCY = fromPos.y + fromH / 2;
+      const toCX = toPos.x + toW / 2;
+      const toCY = toPos.y + toH / 2;
+
+      // Simple: connect centers, offset to edges
+      const dx = toCX - fromCX;
+      const dy = toCY - fromCY;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // Horizontal connection
+        if (dx > 0) {
+          x1 = fromPos.x + fromW; y1 = fromCY;
+          x2 = toPos.x; y2 = toCY;
+        } else {
+          x1 = fromPos.x; y1 = fromCY;
+          x2 = toPos.x + toW; y2 = toCY;
+        }
+      } else {
+        // Vertical connection
+        if (dy > 0) {
+          x1 = fromCX; y1 = fromPos.y + fromH;
+          x2 = toCX; y2 = toPos.y;
+        } else {
+          x1 = fromCX; y1 = fromPos.y;
+          x2 = toCX; y2 = toPos.y + toH;
+        }
+      }
+
+      // Draw path with curve
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M${x1},${y1} Q${midX},${y1} ${midX},${midY} Q${midX},${y2} ${x2},${y2}`);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', 'var(--border-light)');
+      path.setAttribute('stroke-width', '1.5');
+      path.setAttribute('marker-end', 'url(#er-arrow)');
+      path.setAttribute('data-from', rel.from);
+      path.setAttribute('data-to', rel.to);
+      path.style.opacity = '0.5';
+      path.style.transition = 'opacity 0.2s, stroke 0.2s';
+      svg.appendChild(path);
+
+      // Relationship type label at midpoint
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', midX); text.setAttribute('y', midY - 6);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '10');
+      text.setAttribute('font-family', 'var(--font-mono)');
+      text.setAttribute('fill', 'var(--text-muted)');
+      text.setAttribute('data-from', rel.from);
+      text.setAttribute('data-to', rel.to);
+      text.textContent = rel.type;
+      svg.appendChild(text);
+    }
+  }
+
+  function selectTable(name) {
+    selectedTable = name;
+    const table = allTables.find(t => t.name === name);
+    if (!table) return;
+
+    // Find related tables
+    const relatedNames = new Set([name]);
+    const tableRels = [];
+    for (const r of allRels) {
+      if (r.from === name) { relatedNames.add(r.to); tableRels.push({ ...r, direction: 'outgoing' }); }
+      if (r.to === name) { relatedNames.add(r.from); tableRels.push({ ...r, direction: 'incoming' }); }
+    }
+
+    // Highlight
+    document.querySelectorAll('.er-table').forEach(el => {
+      el.classList.remove('selected', 'related', 'dimmed');
+      const n = el.dataset.name;
+      if (n === name) el.classList.add('selected');
+      else if (relatedNames.has(n)) el.classList.add('related');
+      else el.classList.add('dimmed');
+    });
+
+    document.querySelectorAll('#edges path, #edges text').forEach(el => {
+      const f = el.getAttribute('data-from'), t = el.getAttribute('data-to');
+      if (f === name || t === name) {
+        if (el.tagName === 'path') {
+          el.style.opacity = '1'; el.setAttribute('stroke', 'var(--accent)');
+          el.setAttribute('stroke-width', '2'); el.setAttribute('marker-end', 'url(#er-arrow-hl)');
+        } else {
+          el.setAttribute('fill', 'var(--accent)');
+        }
+      } else {
+        if (el.tagName === 'path') { el.style.opacity = '0.1'; }
+        else { el.style.opacity = '0.2'; }
+      }
+    });
+
+    // Detail panel
+    const detail = document.getElementById('detail');
+    detail.classList.remove('hidden');
+
+    const isMvp = table.phase !== 'post-mvp';
+    const colsTable = `<table class="detail-col-table">
+      <tr><th>Column</th><th>Type</th><th>Constraints</th><th>Notes</th></tr>
+      ${table.columns.map(c => `<tr>
+        <td>${c.isPK ? '<span style="color:#facc15">&#9670;</span> ' : c.isFK ? '<span style="color:var(--accent)">&#8594;</span> ' : ''}${c.name}</td>
+        <td>${c.type}</td>
+        <td style="font-size:10px;color:var(--text-muted)">${c.constraints}</td>
+        <td style="font-size:10px;color:var(--text-muted)">${c.notes}</td>
+      </tr>`).join('')}
+    </table>`;
+
+    const relsHtml = tableRels.length > 0
+      ? tableRels.map(r => {
+          const target = r.direction === 'outgoing' ? r.to : r.from;
+          const arrow = r.direction === 'outgoing' ? '→' : '←';
+          return `<div class="rel-item">
+            <span class="rel-type">${r.type}</span>
+            <span>${arrow}</span>
+            <span class="rel-target" data-target="${target}">${target}</span>
+            <span class="rel-cascade">${r.cascade}</span>
+          </div>`;
+        }).join('')
+      : '<p style="color:var(--text-muted);font-size:12px">No relationships</p>';
+
+    detail.innerHTML = `
+      <button class="panel-close" id="panel-close">&times;</button>
+      <h2>${table.name}</h2>
+      ${table.description ? `<p class="detail-desc">${table.description}</p>` : ''}
+      <div class="detail-section">
+        <h3>Phase</h3>
+        <span class="tag ${isMvp ? 'tag-mvp' : 'tag-post-mvp'}">${isMvp ? 'MVP' : 'Post-MVP'}</span>
+      </div>
+      <div class="detail-section">
+        <h3>Columns (${table.columns.length})</h3>
+        ${colsTable}
+      </div>
+      ${table.indexes ? `<div class="detail-section"><h3>Indexes</h3><p style="font-size:12px;font-family:var(--font-mono)">${table.indexes}</p></div>` : ''}
+      <div class="detail-section">
+        <h3>Relationships</h3>
+        ${relsHtml}
+      </div>
+    `;
+
+    detail.querySelectorAll('.rel-target').forEach(el => {
+      el.addEventListener('click', () => selectTable(el.dataset.target));
+    });
+    document.getElementById('panel-close').addEventListener('click', deselectAll);
+  }
+
+  function deselectAll() {
+    selectedTable = null;
+    document.querySelectorAll('.er-table').forEach(el => el.classList.remove('selected', 'related', 'dimmed'));
+    document.querySelectorAll('#edges path').forEach(el => {
+      el.style.opacity = '0.5'; el.setAttribute('stroke', 'var(--border-light)');
+      el.setAttribute('stroke-width', '1.5'); el.setAttribute('marker-end', 'url(#er-arrow)');
+    });
+    document.querySelectorAll('#edges text').forEach(el => {
+      el.setAttribute('fill', 'var(--text-muted)'); el.style.opacity = '1';
+    });
+    document.getElementById('detail').classList.add('hidden');
+  }
+
+  // ---- Filters ----
+  document.getElementById('filters').addEventListener('click', e => {
+    const btn = e.target.closest('.filter-chip');
+    if (!btn) return;
+    document.querySelectorAll('#filters .filter-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    document.querySelectorAll('.er-table').forEach(el => {
+      el.style.display = ''; el.classList.remove('dimmed');
+    });
+    if (filter === 'mvp') {
+      allTables.forEach(t => {
+        if (t.phase === 'post-mvp') {
+          const el = document.querySelector(`.er-table[data-name="${t.name}"]`);
+          if (el) el.classList.add('dimmed');
+        }
+      });
+    }
+  });
+
+  // ---- Drag & Drop ----
+  let dragState = null;
+
+  function initDrag() {
+    const container = document.getElementById('tables-container');
+
+    container.addEventListener('mousedown', e => {
+      const tableEl = e.target.closest('.er-table');
+      if (!tableEl) return;
+      e.preventDefault();
+      const name = tableEl.dataset.name;
+      const rect = tableEl.getBoundingClientRect();
+      dragState = {
+        el: tableEl,
+        name: name,
+        offsetX: e.clientX - rect.left,
+        offsetY: e.clientY - rect.top,
+        moved: false,
+      };
+      tableEl.classList.add('dragging');
+      document.body.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', e => {
+      if (!dragState) return;
+      e.preventDefault();
+      dragState.moved = true;
+      const canvas = document.getElementById('er-canvas');
+      const canvasRect = canvas.getBoundingClientRect();
+      const x = e.clientX - canvasRect.left + canvas.scrollLeft - dragState.offsetX;
+      const y = e.clientY - canvasRect.top + canvas.scrollTop - dragState.offsetY;
+      dragState.el.style.left = Math.max(0, x) + 'px';
+      dragState.el.style.top = Math.max(0, y) + 'px';
+      positions[dragState.name] = { x: Math.max(0, x), y: Math.max(0, y) };
+      renderEdges();
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!dragState) return;
+      dragState.el.classList.remove('dragging');
+      document.body.style.cursor = '';
+      // If we dragged, suppress the click event that would trigger selectTable
+      if (dragState.moved) {
+        const el = dragState.el;
+        const suppress = e => { e.stopPropagation(); el.removeEventListener('click', suppress, true); };
+        el.addEventListener('click', suppress, true);
+      }
+      dragState = null;
+    });
+  }
+
+  // ---- Init ----
+  async function init() {
+    try {
+      const raw = await KRISInteractive.fetchRaw(src);
+      const { body } = KRISInteractive.parseFrontmatter(raw);
+      allTables = parseTables(body);
+
+      if (allTables.length === 0) {
+        KRISInteractive.showError(document.getElementById('er-canvas'),
+          'No tables found', 'Expected a ## Tables section with ### table_name entries.');
+        document.getElementById('loading').style.display = 'none';
+        return;
+      }
+
+      // Apply MVP phases
+      const phases = parseMVPTable(body);
+      allTables.forEach(t => { if (phases[t.name]) t.phase = phases[t.name]; });
+
+      // Parse or infer relationships
+      allRels = parseRelationships(body);
+      if (allRels.length === 0) allRels = inferRelationships(allTables);
+
+      positions = computeLayout(allTables, allRels);
+      document.getElementById('loading').style.display = 'none';
+      renderTables();
+      renderEdges();
+      initDrag();
+
+      document.getElementById('er-canvas').addEventListener('click', e => {
+        if (!e.target.closest('.er-table')) deselectAll();
+      });
+
+      window.addEventListener('resize', () => {
+        renderEdges();
+      });
+    } catch (err) {
+      document.getElementById('loading').textContent = 'Error: ' + err.message;
+    }
+  }
+  init();
+})();
+</script>
+{% endblock %}
