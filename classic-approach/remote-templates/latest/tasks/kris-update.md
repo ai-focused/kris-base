@@ -36,6 +36,9 @@ You must:
    - If it has structured "## Modules" → suggest: dependency-graph
    - If it has "## User Flows" → suggest: flow-diagram
    - If it has "## Tables" → suggest: entity-relationship
+   - If it has "## Milestones" or "## Milestone Progress" → suggest: timeline
+   - If it has `- [ ]` / `- [x]` task items → suggest: kanban-board
+   - If it has tables with 3+ columns for comparison → suggest: comparison-matrix
    - If interactive tag mismatch exists → suggest removal
 
 # OUTPUT

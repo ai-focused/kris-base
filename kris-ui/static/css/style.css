@@ -340,7 +340,7 @@ body {
 }
 
 /* About modal */
-.about-modal { max-width: 520px; }
+.about-modal { max-width: 520px; max-height: 80vh; overflow-y: auto; }
 .about-current {
   display: flex;
   align-items: center;

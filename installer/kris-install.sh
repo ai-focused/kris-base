@@ -177,10 +177,19 @@ KRIS_UI_FILES=(
     "templates/interactive/entity-relationship/format.md"
     "static/img/kris-logo.png"
     "static/img/favicon.ico"
+    "templates/interactive/timeline/manifest.json"
+    "templates/interactive/timeline/template.html"
+    "templates/interactive/timeline/format.md"
+    "templates/interactive/kanban-board/manifest.json"
+    "templates/interactive/kanban-board/template.html"
+    "templates/interactive/kanban-board/format.md"
+    "templates/interactive/comparison-matrix/manifest.json"
+    "templates/interactive/comparison-matrix/template.html"
+    "templates/interactive/comparison-matrix/format.md"
 )
 
 # Create directory structure
-mkdir -p "$KRIS_UI_DIR/templates/interactive/dependency-graph" "$KRIS_UI_DIR/templates/interactive/flow-diagram" "$KRIS_UI_DIR/templates/interactive/entity-relationship" "$KRIS_UI_DIR/static/css" "$KRIS_UI_DIR/static/js" "$KRIS_UI_DIR/static/img"
+mkdir -p "$KRIS_UI_DIR/templates/interactive/dependency-graph" "$KRIS_UI_DIR/templates/interactive/flow-diagram" "$KRIS_UI_DIR/templates/interactive/entity-relationship" "$KRIS_UI_DIR/templates/interactive/timeline" "$KRIS_UI_DIR/templates/interactive/kanban-board" "$KRIS_UI_DIR/templates/interactive/comparison-matrix" "$KRIS_UI_DIR/static/css" "$KRIS_UI_DIR/static/js" "$KRIS_UI_DIR/static/img"
 
 kris_ui_ok=true
 for file in "${KRIS_UI_FILES[@]}"; do
@@ -231,6 +240,30 @@ if $kris_tasks_ok; then
     echo -e "${GREEN}✓ KRIS Tasks downloaded (${#KRIS_TASK_FILES[@]} files)${NC}"
 else
     echo -e "${YELLOW}⚠ Some task files failed to download.${NC}"
+fi
+
+# Download Claude Code commands
+echo ""
+echo -e "${CYAN}Downloading KRIS Commands (Claude Code)...${NC}"
+
+COMMANDS_DIR=".claude/commands"
+mkdir -p "$COMMANDS_DIR"
+
+kris_cmds_ok=true
+for file in "${KRIS_TASK_FILES[@]}"; do
+    url="${GITHUB_RAW_BASE}/remote-templates/${VERSION}/commands/${file}"
+    dest="${COMMANDS_DIR}/${file}"
+    if command -v curl &> /dev/null; then
+        curl -fsSL "$url" -o "$dest" 2>/dev/null || { echo -e "${RED}  ✗ Failed: ${file}${NC}"; kris_cmds_ok=false; }
+    elif command -v wget &> /dev/null; then
+        wget -q "$url" -O "$dest" 2>/dev/null || { echo -e "${RED}  ✗ Failed: ${file}${NC}"; kris_cmds_ok=false; }
+    fi
+done
+
+if $kris_cmds_ok; then
+    echo -e "${GREEN}✓ KRIS Commands downloaded (${#KRIS_TASK_FILES[@]} files)${NC}"
+else
+    echo -e "${YELLOW}⚠ Some command files failed to download.${NC}"
 fi
 
 # Download AGENTS.md (non-destructive)

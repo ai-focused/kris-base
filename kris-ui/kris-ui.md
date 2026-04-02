@@ -143,6 +143,44 @@ Optional description text.
 
 ---
 
+#### `timeline`
+
+Renders milestones and completion history as an interactive vertical timeline.
+
+**Required section**: `## Milestones` or `## Milestone Progress` with `### Milestone Name` sub-headings.
+
+Each milestone can have: `**Status**`, `**Date**`, `**Progress**`, and `- [x]`/`- [ ]` task items.
+
+**Optional section**: `## Completion History` — table with `Date`, `Task`, `Result` columns.
+
+**Behaviors**: Vertical timeline with milestone nodes (green=complete, amber=in-progress, grey=planned), progress bars, expandable task lists, event history stream. Filter by status.
+
+---
+
+#### `kanban-board`
+
+Renders task items as cards in status columns (To Do, In Progress, Done).
+
+**Option A**: Explicit columns with `## Board` > `### Column Name` sub-sections containing `- [ ]`/`- [x]` items.
+
+**Option B**: Auto-detect — scans all `- [ ]` (→ To Do) and `- [x]` (→ Done) items, groups by checkbox state. `## Section` headings become category labels on cards.
+
+**Behaviors**: Card columns with count badges, category color coding, filter by category.
+
+---
+
+#### `comparison-matrix`
+
+Renders markdown tables as interactive comparison grids with sorting and color coding.
+
+**Required**: Any tables with 3+ columns. Each table becomes a sortable, interactive grid.
+
+**Auto color coding**: Yes/True/High → green, No/False/Low → red, Partial/Medium → amber, numbers → blue.
+
+**Behaviors**: Click column header to sort (asc/desc), click row to highlight, cell tooltips for full content. Multiple tables per document supported.
+
+---
+
 ### Writing Interactive-Compatible Specs
 
 When writing or updating specs in the Middle Ring, consider whether the content fits an interactive template:
@@ -152,6 +190,9 @@ When writing or updating specs in the Middle Ring, consider whether the content 
 | Modules with dependencies, IDs, phases | `dependency-graph` |
 | User flows with steps, screens, modules | `flow-diagram` |
 | Database tables with columns, FKs, relationships | `entity-relationship` |
+| Milestones with dates, progress, task checklists | `timeline` |
+| Task items with `- [ ]` / `- [x]` checkboxes | `kanban-board` |
+| Feature/option comparison tables (3+ columns) | `comparison-matrix` |
 | Both modules AND flows | `interactive: [dependency-graph, flow-diagram]` |
 
 **Key principles**:
@@ -192,4 +233,4 @@ For visualizations that don't fit any template, place standalone `.html` files i
 
 ---
 
-*KRIS UI v3.2 | Part of KRIS (Knowledge Rings Information System)*
+*KRIS UI v3.3 | Part of KRIS (Knowledge Rings Information System)*

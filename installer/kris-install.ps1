@@ -149,13 +149,25 @@ $KRIS_UI_FILES = @(
     "templates/interactive/entity-relationship/template.html",
     "templates/interactive/entity-relationship/format.md",
     "static/img/kris-logo.png",
-    "static/img/favicon.ico"
+    "static/img/favicon.ico",
+    "templates/interactive/timeline/manifest.json",
+    "templates/interactive/timeline/template.html",
+    "templates/interactive/timeline/format.md",
+    "templates/interactive/kanban-board/manifest.json",
+    "templates/interactive/kanban-board/template.html",
+    "templates/interactive/kanban-board/format.md",
+    "templates/interactive/comparison-matrix/manifest.json",
+    "templates/interactive/comparison-matrix/template.html",
+    "templates/interactive/comparison-matrix/format.md"
 )
 
 # Create directory structure
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\dependency-graph" | Out-Null
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\flow-diagram" | Out-Null
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\entity-relationship" | Out-Null
+New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\timeline" | Out-Null
+New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\kanban-board" | Out-Null
+New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\templates\interactive\comparison-matrix" | Out-Null
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\static\css" | Out-Null
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\static\js" | Out-Null
 New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\static\img" | Out-Null
@@ -211,6 +223,31 @@ if ($kris_tasks_ok) {
     Write-Host "✓ KRIS Tasks downloaded ($($KRIS_TASK_FILES.Count) files)" -ForegroundColor Green
 } else {
     Write-Host "⚠ Some task files failed to download." -ForegroundColor Yellow
+}
+
+# Download Claude Code commands
+Write-Host ""
+Write-Host "Downloading KRIS Commands (Claude Code)..." -ForegroundColor Cyan
+
+$COMMANDS_DIR = ".claude\commands"
+New-Item -ItemType Directory -Force -Path $COMMANDS_DIR | Out-Null
+
+$kris_cmds_ok = $true
+foreach ($file in $KRIS_TASK_FILES) {
+    $url = "$GITHUB_RAW_BASE/remote-templates/$VERSION/commands/$file"
+    $dest = "$COMMANDS_DIR\$file"
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
+    } catch {
+        Write-Host "  ✗ Failed: $file" -ForegroundColor Red
+        $kris_cmds_ok = $false
+    }
+}
+
+if ($kris_cmds_ok) {
+    Write-Host "✓ KRIS Commands downloaded ($($KRIS_TASK_FILES.Count) files)" -ForegroundColor Green
+} else {
+    Write-Host "⚠ Some command files failed to download." -ForegroundColor Yellow
 }
 
 # Download AGENTS.md (non-destructive)

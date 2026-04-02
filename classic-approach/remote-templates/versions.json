@@ -1,24 +1,28 @@
 {
   "current": {
-    "stable": "3.2",
-    "latest": "3.2"
+    "stable": "3.3",
+    "latest": "3.3"
   },
   "versions": {
-    "3.2": {
-      "date": "2026-03-30",
+    "3.3": {
+      "date": "2026-04-02",
       "channel": ["stable", "latest"],
       "changelog": [
-        "Documentation freshness indicator — git vs KRIS drift detection in header and dashboard",
+        "Timeline template — milestone track with progress bars, task lists, history stream",
+        "Kanban Board template — card columns with auto-detection from checkboxes, category colors",
+        "Comparison Matrix template — sortable grids with auto color-coded cells (Yes/No/Partial)",
+        "6 interactive templates total (dependency-graph, flow-diagram, entity-relationship, timeline, kanban-board, comparison-matrix)",
+        "Installer now downloads .claude/commands/ alongside .kris/tasks/ (immediate slash commands)",
+        "CLAUDE.md.base instructs AI to structure specs for interactive templates proactively",
+        "Documentation freshness indicator — git vs KRIS drift in header and dashboard",
         "Expandable freshness card with commit history and changed files in 2-column grid",
-        "Core ring segmented budget bar — CLAUDE.md, AGENTS.md, other files with distinct colors",
-        "Commands and Tasks excluded from token budget (on-demand, not loaded every session)",
-        "Budget tooltip shows one entry per line with all categories",
-        "KRIS Commands / Tasks section label in sidebar (separate from Custom)",
-        "Keyboard nav: arrow down starts from selected file, folder expand/collapse with arrows",
-        "ArrowRight expands folder, ArrowLeft collapses, Enter toggles, arrows skip collapsed children",
+        "Core ring segmented budget bar — CLAUDE.md, AGENTS.md, other with distinct colors",
+        "Commands/Tasks excluded from token budget (on-demand)",
         "About KRIS modal — version check from GitHub, changelog, upgrade instructions",
         "Footer version label with golden arrow when update available",
-        "Nav auto-switches to Docs when selecting a file from Home"
+        "Keyboard nav: folder expand/collapse with arrows, nav auto-switches on file select",
+        "About modal scrollable (max-height: 80vh)",
+        "README with KRIS UI section, 6-template table, usage examples"
       ],
       "files": {
         "base": "CLAUDE.md.base",
@@ -61,9 +65,30 @@
           "kris-ui/templates/interactive/flow-diagram/format.md",
           "kris-ui/templates/interactive/entity-relationship/manifest.json",
           "kris-ui/templates/interactive/entity-relationship/template.html",
-          "kris-ui/templates/interactive/entity-relationship/format.md"
+          "kris-ui/templates/interactive/entity-relationship/format.md",
+          "kris-ui/templates/interactive/timeline/manifest.json",
+          "kris-ui/templates/interactive/timeline/template.html",
+          "kris-ui/templates/interactive/timeline/format.md",
+          "kris-ui/templates/interactive/kanban-board/manifest.json",
+          "kris-ui/templates/interactive/kanban-board/template.html",
+          "kris-ui/templates/interactive/kanban-board/format.md",
+          "kris-ui/templates/interactive/comparison-matrix/manifest.json",
+          "kris-ui/templates/interactive/comparison-matrix/template.html",
+          "kris-ui/templates/interactive/comparison-matrix/format.md"
         ]
       }
+    },
+    "3.2": {
+      "date": "2026-03-30",
+      "channel": ["archived"],
+      "changelog": [
+        "Documentation freshness indicator",
+        "Core ring segmented budget bar",
+        "About KRIS modal with update check",
+        "Keyboard folder navigation"
+      ],
+      "deprecated": true,
+      "upgrade_to": "3.3"
     },
     "3.1": {
       "date": "2026-03-29",
@@ -79,7 +104,7 @@
         "/api/project-logo route serves project logo with path validation"
       ],
       "deprecated": true,
-      "upgrade_to": "3.2"
+      "upgrade_to": "3.3"
     },
     "3.0": {
       "date": "2026-03-29",

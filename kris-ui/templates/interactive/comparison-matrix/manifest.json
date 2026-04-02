@@ -1,0 +1,6 @@
+{
+  "id": "comparison-matrix",
+  "name": "Comparison Matrix",
+  "description": "Interactive feature comparison grid with sorting, filtering, and color-coded cells for Yes/No/partial values.",
+  "version": "1.0"
+}

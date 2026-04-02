@@ -16,7 +16,7 @@ Display KRIS welcome banner, project status, KRIS UI status, and available tasks
 │  KRIS - Knowledge Rings Information System                   │
 │  Created by: Alexandru Negrila                               │
 │  Documentation: https://github.com/ai-focused/kris-base      │
-│  KRIS Version: 3.2                                           │
+│  KRIS Version: 3.3                                           │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 

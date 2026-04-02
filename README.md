@@ -120,6 +120,43 @@ After installation, these commands are available:
 
 In Claude Code, use `/kris-status`. In other agents, use `run kris-status` or reference `.kris/tasks/kris-status.md`.
 
+## KRIS UI — Visual Documentation Browser
+
+KRIS includes a local web viewer for browsing your documentation with search, keyboard shortcuts, and interactive visualizations.
+
+```bash
+cd memory-bank/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python3 kris-ui.py
+```
+
+Open http://localhost:5111 — features include:
+- **Dashboard** with ring token budgets, project achievements, and freshness indicator (git vs docs drift)
+- **Ring navigation** with file tree, search, and keyboard shortcuts (1-4 for rings, `/` for search, `h` for home)
+- **Light/dark theme** toggle with localStorage persistence
+- **Interactive templates** — turn structured markdown into visual explorations
+
+### Interactive Templates
+
+Add `interactive: template-name` to your markdown frontmatter to enable visual views:
+
+```yaml
+---
+interactive: dependency-graph
+---
+```
+
+| Template | What it visualizes | Key format |
+|----------|-------------------|------------|
+| `dependency-graph` | Module nodes with dependency edges | `## Modules` > `### Name` with `**ID**`, `**Depends on**`, `**Phase**` |
+| `flow-diagram` | User flows as horizontal swimlanes | `## User Flows` > `### Flow N: Name` with step tables |
+| `entity-relationship` | Database ER diagrams (draggable) | `## Tables` > `### table_name` with column tables |
+| `timeline` | Milestones with progress bars | `## Milestones` > `### Name` with `**Date**`, `**Progress**`, tasks |
+| `kanban-board` | Task cards in status columns | `- [ ]` / `- [x]` items, auto-grouped or explicit `### Column` |
+| `comparison-matrix` | Sortable comparison grids | Any table with 3+ columns, auto color-coded |
+
+Multiple templates on one doc: `interactive: [dependency-graph, flow-diagram]`
+
+See [kris-ui.md](kris-ui/kris-ui.md) for full authoring rules and format specs.
+
 ## Platform Support
 
 | Platform | Status | Installer |
@@ -135,7 +172,7 @@ In Claude Code, use `/kris-status`. In other agents, use `run kris-status` or re
 - **stable** - Recommended for most users (tested, reliable)
 - **latest** - Bleeding edge (may have experimental features)
 
-Current version: **3.2**
+Current version: **3.3**
 
 ## Author
 

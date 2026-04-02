@@ -48,6 +48,9 @@ Update activeContext.md with current session progress.
    - Does it have structured `## Modules` with `### Name` + `**ID**`, `**Purpose**`, `**Depends on**`, `**Phase**` fields? → Suggest `interactive: dependency-graph`
    - Does it have `## User Flows` with `### Flow N: Name` + step tables? → Suggest `interactive: flow-diagram`
    - Does it have `## Tables` with `### table_name` + column tables (Column, Type, Constraints)? → Suggest `interactive: entity-relationship`
+   - Does it have `## Milestones` or `## Milestone Progress` with dated entries? → Suggest `interactive: timeline`
+   - Does it have `- [ ]` / `- [x]` task items that could be a board? → Suggest `interactive: kanban-board`
+   - Does it have tables with 3+ columns for feature/option comparison? → Suggest `interactive: comparison-matrix`
    - Does it already have an `interactive:` frontmatter tag that no longer matches the content? → Suggest removing it
 
    If opportunities found, ask:
