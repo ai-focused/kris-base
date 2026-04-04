@@ -14,7 +14,7 @@ import yaml
 
 from flask import Flask, jsonify, request, abort, Response, render_template
 
-KRIS_VERSION = "3.3"
+KRIS_VERSION = "3.4"
 import markdown
 from markdown.extensions.codehilite import CodeHiliteExtension
 from pygments.formatters import HtmlFormatter
@@ -209,6 +209,7 @@ RING_DEFAULT_FILES = {
 def file_meta(filepath: Path, ring_name: str, virtual_path: str = "") -> dict:
     stat = filepath.stat()
     content = filepath.read_text(encoding="utf-8", errors="replace")
+    lines = content.count("\n") + (1 if content and not content.endswith("\n") else 0)
     words = len(content.split())
     tokens = round(words * 1.3)
     if virtual_path:
@@ -238,6 +239,7 @@ def file_meta(filepath: Path, ring_name: str, virtual_path: str = "") -> dict:
         "modified_iso": datetime.fromtimestamp(stat.st_mtime).isoformat(
             timespec="seconds"
         ),
+        "lines": lines,
         "words": words,
         "tokens": tokens,
     }

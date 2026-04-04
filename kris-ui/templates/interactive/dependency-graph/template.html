@@ -175,7 +175,7 @@
       const name = lines[0].trim();
       const mod = { name, id: '', purpose: '', dependsOn: [], phase: 'MVP', container: '', notes: '' };
       for (const line of lines) {
-        const kv = line.match(/^- \*\*(.+?)\*\*:\s*(.+)/);
+        const kv = line.match(/^\s*(?:[-*]\s+)?\*\*(.+?)\*\*:\s*(.+)/);
         if (!kv) continue;
         const key = kv[1].trim().toLowerCase();
         const val = kv[2].trim();
@@ -202,7 +202,7 @@
     const blocks = content.split(/^### /m).filter(b => b.trim());
     for (const block of blocks) {
       const lines = block.split('\n');
-      const nameMatch = lines[0].match(/^Flow \d+:\s*(.+)/);
+      const nameMatch = lines[0].match(/^(?:Flow \d+:\s*)?(.+)/);
       if (!nameMatch) continue;
       const name = nameMatch[1].trim();
       const tableLines = lines.filter(l => l.startsWith('|') && !l.includes('---') && !l.includes('Step'));

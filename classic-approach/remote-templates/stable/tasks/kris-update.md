@@ -34,12 +34,18 @@ You must:
 4. Detect interactive documentation opportunities:
    For each modified Middle Ring spec file:
    - If it has structured "## Modules" → suggest: dependency-graph
+     Required format: `- **ID**: value`, `- **Depends on**: value`, `- **Phase**: value`
    - If it has "## User Flows" → suggest: flow-diagram
+     Required format: `### Flow N: Name` with Step/Screen/Module(s)/Phase table
    - If it has "## Tables" → suggest: entity-relationship
    - If it has "## Milestones" or "## Milestone Progress" → suggest: timeline
+     Required format: `- **Status**: value`, `- **Date**: value`, `- **Progress**: N%`
    - If it has `- [ ]` / `- [x]` task items → suggest: kanban-board
    - If it has tables with 3+ columns for comparison → suggest: comparison-matrix
    - If interactive tag mismatch exists → suggest removal
+
+   IMPORTANT: Structured fields MUST use bullet-prefix format:
+   `- **Key**: Value` (not `**Key**: Value`)
 
 # OUTPUT
 

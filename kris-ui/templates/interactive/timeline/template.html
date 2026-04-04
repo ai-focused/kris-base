@@ -191,7 +191,7 @@
       const tasks = [];
 
       for (const line of lines.slice(1)) {
-        const kv = line.match(/^- \*\*(.+?)\*\*:\s*(.+)/);
+        const kv = line.match(/^\s*(?:[-*]\s+)?\*\*(.+?)\*\*:\s*(.+)/);
         if (kv) {
           const key = kv[1].toLowerCase();
           if (key === 'status') status = kv[2].trim().toLowerCase().replace(/\s+/g, '-');

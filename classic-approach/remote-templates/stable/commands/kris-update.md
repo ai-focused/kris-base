@@ -45,10 +45,10 @@ Update activeContext.md with current session progress.
 
 6. **Check interactive template opportunities**
    For each Middle Ring spec file modified in this session, check:
-   - Does it have structured `## Modules` with `### Name` + `**ID**`, `**Purpose**`, `**Depends on**`, `**Phase**` fields? → Suggest `interactive: dependency-graph`
-   - Does it have `## User Flows` with `### Flow N: Name` + step tables? → Suggest `interactive: flow-diagram`
+   - Does it have structured `## Modules` with `### Name` + `- **ID**: value`, `- **Depends on**: value`, `- **Phase**: value`? → Suggest `interactive: dependency-graph`
+   - Does it have `## User Flows` with `### Flow N: Name` + Step/Screen/Module(s)/Phase table? → Suggest `interactive: flow-diagram`
    - Does it have `## Tables` with `### table_name` + column tables (Column, Type, Constraints)? → Suggest `interactive: entity-relationship`
-   - Does it have `## Milestones` or `## Milestone Progress` with dated entries? → Suggest `interactive: timeline`
+   - Does it have `## Milestones` or `## Milestone Progress` with `- **Status**: value`, `- **Date**: value`, `- **Progress**: N%`? → Suggest `interactive: timeline`
    - Does it have `- [ ]` / `- [x]` task items that could be a board? → Suggest `interactive: kanban-board`
    - Does it have tables with 3+ columns for feature/option comparison? → Suggest `interactive: comparison-matrix`
    - Does it already have an `interactive:` frontmatter tag that no longer matches the content? → Suggest removing it
@@ -62,6 +62,7 @@ Update activeContext.md with current session progress.
      Add frontmatter tags? [y/N]
    ```
 
+   IMPORTANT: Structured fields MUST use bullet-prefix format: `- **Key**: Value` (not `**Key**: Value`).
    See [kris-ui.md](memory-bank/kris-ui/kris-ui.md#interactive-documentation) for format rules.
 
 7. **Suggest next action**:

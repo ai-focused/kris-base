@@ -175,10 +175,11 @@
 
     for (const block of blocks) {
       const lines = block.split('\n');
-      const nameMatch = lines[0].match(/^Flow \d+:\s*(.+)/);
+      const nameMatch = lines[0].match(/^(?:Flow \d+:\s*)?(.+)/);
       if (!nameMatch) continue;
       const name = nameMatch[1].trim();
-      const number = lines[0].match(/^Flow (\d+)/)[1];
+      const numberMatch = lines[0].match(/^Flow (\d+)/);
+      const number = numberMatch ? numberMatch[1] : String(flows.length + 1);
 
       const steps = [];
       const tableLines = lines.filter(l => l.startsWith('|') && !l.includes('---'));

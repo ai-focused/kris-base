@@ -685,6 +685,7 @@ function renderMeta(data) {
       <div class="meta-label">File Info</div>
       <div class="meta-row"><span class="label">Type</span><span class="value">${typeLabel}</span></div>
       <div class="meta-row"><span class="label">Location</span><span class="value">${folderLabel}</span></div>
+      <div class="meta-row"><span class="label">Lines</span><span class="value">${m.lines ? m.lines.toLocaleString() : '—'}</span></div>
       <div class="meta-row"><span class="label">Words</span><span class="value">${m.words.toLocaleString()}</span></div>
       <div class="meta-row"><span class="label">Tokens (est)</span><span class="value">${m.tokens.toLocaleString()}</span></div>
       <div class="meta-row"><span class="label">Size</span><span class="value">${formatBytes(m.size_bytes)}</span></div>
