@@ -14,7 +14,7 @@ import yaml
 
 from flask import Flask, jsonify, request, abort, Response, render_template
 
-KRIS_VERSION = "3.4"
+KRIS_VERSION = "3.5"
 import markdown
 from markdown.extensions.codehilite import CodeHiliteExtension
 from pygments.formatters import HtmlFormatter
@@ -450,6 +450,14 @@ def search_files(query: str) -> list[dict]:
 
 app = Flask(__name__)
 scan_templates()
+
+# WirePulse (optional — only active if sync.py exists)
+try:
+    from sync import wp_bp, init_wirepulse
+    app.register_blueprint(wp_bp)
+    init_wirepulse(PROJECT_ROOT)
+except ImportError:
+    pass  # WirePulse not installed — sync features disabled
 
 
 @app.route("/api/rings")

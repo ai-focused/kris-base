@@ -1,0 +1,17 @@
+{
+  "teams": [
+    {
+      "_comment": "Join a team via KRIS UI → Sync → Join Team, or fill in manually",
+      "name": "YOUR_TEAM_NAME",
+      "server": "https://kris-sync.scaledagile.pro",
+      "tenant_id": "YOUR_TENANT_ID",
+      "squad": {
+        "lead": {
+          "name": "YOUR_NAME",
+          "token": "YOUR_TOKEN_FROM_INVITE"
+        },
+        "agents": []
+      }
+    }
+  ]
+}

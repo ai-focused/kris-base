@@ -186,6 +186,9 @@ KRIS_UI_FILES=(
     "templates/interactive/comparison-matrix/manifest.json"
     "templates/interactive/comparison-matrix/template.html"
     "templates/interactive/comparison-matrix/format.md"
+    "sync.py"
+    "static/css/kris-sync.css"
+    "static/js/kris-sync.js"
 )
 
 # Create directory structure

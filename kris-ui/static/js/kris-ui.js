@@ -39,6 +39,7 @@ async function init() {
   metaList.forEach(m => { interactiveMeta[m.path] = m.interactive; });
   renderRingNav();
   renderWelcomeDashboard();
+  checkSyncAvailable();
   // URL state
   const params = new URLSearchParams(location.search);
   const ring = params.get('ring') || 'core';
@@ -1011,6 +1012,13 @@ document.addEventListener('keydown', function(e) {
     return;
   }
 
+  // "w": open WirePulse panel
+  if (key === 'w' && document.getElementById('nav-sync')?.style.display !== 'none') {
+    e.preventDefault();
+    showSync();
+    return;
+  }
+
   // "c": jump to core/CLAUDE.md
   if (key === 'c') {
     e.preventDefault();
@@ -1020,23 +1028,40 @@ document.addEventListener('keydown', function(e) {
     return;
   }
 
-  // "?" opens help
+  // "?" opens shortcuts, "v" opens about/version
   if (e.key === '?') {
     e.preventDefault();
     toggleHelp();
     return;
   }
+  if (key === 'v') {
+    e.preventDefault();
+    openKrisModal('about');
+    return;
+  }
 
-  // Escape: dismiss search matches first, then close help modal
+  // When modal is open: arrow left/right switch tabs
+  const krisModalEl = document.getElementById('kris-modal');
+  if (krisModalEl && krisModalEl.classList.contains('active')) {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const currentTab = document.querySelector('.kris-modal-tab.active');
+      const nextTab = currentTab && currentTab.dataset.tab === 'about' ? 'shortcuts' : 'about';
+      switchModalTab(nextTab);
+      return;
+    }
+  }
+
+  // Escape: dismiss search matches first, then close modal
   if (e.key === 'Escape') {
     if (searchHits.length > 0) {
       e.preventDefault();
       hideJumpBtn();
       return;
     }
-    const modal = document.getElementById('help-modal');
-    if (modal.classList.contains('active')) {
-      toggleHelp();
+    const krisModal = document.getElementById('kris-modal');
+    if (krisModal && krisModal.classList.contains('active')) {
+      closeKrisModal();
     }
   }
 });
@@ -1072,26 +1097,55 @@ async function checkForUpdates() {
   }
 }
 
-function showAbout() {
-  const modal = document.getElementById('about-modal');
+// --- Unified modal (About + Shortcuts) ---
+function openKrisModal(tab) {
+  const modal = document.getElementById('kris-modal');
   modal.classList.add('active');
+  switchModalTab(tab || 'about');
 
-  const updateEl = document.getElementById('about-update');
-  const changelogEl = document.getElementById('about-changelog');
-
-  if (!versionData) {
-    updateEl.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:12px 0">Checking for updates...</p>';
+  if (tab === 'about' && !versionData) {
+    const updateEl = document.getElementById('about-update');
+    if (updateEl) updateEl.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:12px 0">Checking for updates...</p>';
     checkForUpdates().then(() => renderAboutContent());
-    return;
+  } else if (tab === 'about') {
+    renderAboutContent();
   }
-  renderAboutContent();
 }
+
+function closeKrisModal() {
+  document.getElementById('kris-modal').classList.remove('active');
+}
+
+function switchModalTab(tab) {
+  document.querySelectorAll('.kris-modal-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.kris-modal-body').forEach(b => b.style.display = 'none');
+  const body = document.getElementById('modal-tab-' + tab);
+  if (body) body.style.display = '';
+  // Show caps badge only on shortcuts tab
+  const caps = document.getElementById('caps-badge');
+  if (caps) caps.style.display = tab === 'shortcuts' ? '' : 'none';
+  // Fetch version data when switching to About tab
+  if (tab === 'about') {
+    if (versionData) { renderAboutContent(); }
+    else { checkForUpdates().then(() => renderAboutContent()); }
+  }
+}
+
+// Legacy aliases for backward compat in keyboard handler
+function toggleHelp() {
+  const modal = document.getElementById('kris-modal');
+  if (modal.classList.contains('active')) closeKrisModal();
+  else openKrisModal('shortcuts');
+}
+function showAbout() { openKrisModal('about'); }
+function closeAbout() { closeKrisModal(); }
 
 function renderAboutContent() {
   const updateEl = document.getElementById('about-update');
   const changelogEl = document.getElementById('about-changelog');
   if (!versionData) {
-    updateEl.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:12px 0">Could not check for updates (offline?)</p>';
+    updateEl.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:12px 0">Could not check for updates (offline or not pushed yet?)</p>' + _checkAgainBtn();
+    changelogEl.innerHTML = '';
     return;
   }
 
@@ -1123,8 +1177,8 @@ function renderAboutContent() {
     updateEl.innerHTML = '<p style="font-size:12px;color:var(--mvp-color,#4CAF50);padding:12px 0">&#x2713; You are on the latest version</p>';
   }
 
-  // Show current version changelog
-  const currentInfo = versionData.versions[currentVersion];
+  // Show current version changelog (try exact match, then latest)
+  const currentInfo = versionData.versions[currentVersion] || (isNewer ? null : latestInfo);
   if (currentInfo && currentInfo.changelog) {
     changelogEl.innerHTML = `
       <div class="about-label" style="margin-top:12px">What's in v${currentVersion}</div>
@@ -1132,19 +1186,30 @@ function renderAboutContent() {
         ${currentInfo.changelog.map(c => `<li>${c}</li>`).join('')}
       </ul>
     `;
+  } else {
+    changelogEl.innerHTML = '';
   }
+
+  // Always add check again button at the bottom
+  changelogEl.innerHTML += _checkAgainBtn();
 }
 
-function closeAbout() {
-  document.getElementById('about-modal').classList.remove('active');
+function _checkAgainBtn() {
+  return '<div style="margin-top:12px;text-align:center"><button onclick="recheckVersion()" style="background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-muted);padding:4px 12px;font-size:11px;cursor:pointer">&#x21BB; Check again</button></div>';
+}
+
+async function recheckVersion() {
+  const updateEl = document.getElementById('about-update');
+  const changelogEl = document.getElementById('about-changelog');
+  if (updateEl) updateEl.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:8px 0">Checking...</p>';
+  if (changelogEl) changelogEl.innerHTML = '<p style="font-size:12px;color:var(--text-muted);padding:8px 0">Loading changelog...</p>';
+  versionData = null;
+  await checkForUpdates();
+  renderAboutContent();
 }
 
 // Check for updates on load (non-blocking)
 setTimeout(checkForUpdates, 3000);
-
-function toggleHelp() {
-  document.getElementById('help-modal').classList.toggle('active');
-}
 
 // --- Internal link navigation ---
 // Intercept clicks on links inside rendered markdown to navigate within KRIS UI
@@ -1224,6 +1289,8 @@ function updateNavActive() {
   if (navHome) navHome.classList.toggle('active', currentView === 'home');
   document.getElementById('nav-docs').classList.toggle('active', currentView === 'docs');
   document.getElementById('nav-interactive').classList.toggle('active', currentView === 'interactive');
+  const navSync = document.getElementById('nav-sync');
+  if (navSync) navSync.classList.toggle('active', currentView === 'sync');
 }
 
 async function showHome() {

@@ -91,9 +91,10 @@ kris-base/
 │   └── kris-install.ps1    # Windows PowerShell
 ├── kris-ui/                # Local web documentation viewer (Flask)
 │   ├── kris-ui.py          # Main app
+│   ├── sync.py             # WirePulse proxy Blueprint
 │   ├── kris-ui.md          # Authoring guide
 │   ├── templates/          # HTML templates + interactive templates
-│   └── static/             # CSS + JS
+│   └── static/             # CSS + JS (incl. kris-sync.js/css for WirePulse)
 └── classic-approach/       # KRIS implementation
     ├── scaffolder/         # CLAUDE.md templates for initial setup
     └── remote-templates/   # Runtime templates, commands, and tasks
@@ -146,16 +147,28 @@ interactive: dependency-graph
 
 | Template | What it visualizes | Key format |
 |----------|-------------------|------------|
-| `dependency-graph` | Module nodes with dependency edges | `## Modules` > `### Name` with `**ID**`, `**Depends on**`, `**Phase**` |
-| `flow-diagram` | User flows as horizontal swimlanes | `## User Flows` > `### Flow N: Name` with step tables |
-| `entity-relationship` | Database ER diagrams (draggable) | `## Tables` > `### table_name` with column tables |
-| `timeline` | Milestones with progress bars | `## Milestones` > `### Name` with `**Date**`, `**Progress**`, tasks |
+| `dependency-graph` | Module nodes with dependency edges | `## Modules` > `### Name` with `- **ID**: value`, `- **Depends on**: value`, `- **Phase**: value` |
+| `flow-diagram` | User flows as horizontal swimlanes | `## User Flows` > `### Flow N: Name` with Step/Screen/Module(s)/Phase table |
+| `entity-relationship` | Database ER diagrams (draggable) | `## Tables` > `### table_name` with Column/Type/Constraints/Notes table |
+| `timeline` | Milestones with progress bars | `## Milestones` > `### Name` with `- **Status**: value`, `- **Date**: value`, `- **Progress**: N%` |
 | `kanban-board` | Task cards in status columns | `- [ ]` / `- [x]` items, auto-grouped or explicit `### Column` |
 | `comparison-matrix` | Sortable comparison grids | Any table with 3+ columns, auto color-coded |
 
 Multiple templates on one doc: `interactive: [dependency-graph, flow-diagram]`
 
 See [kris-ui.md](kris-ui/kris-ui.md) for full authoring rules and format specs.
+
+## WirePulse — Collaboration System
+
+KRIS v3.5 includes **WirePulse**, a real-time collaboration system for coordinating work across humans and AI agents.
+
+- **Circuits** — workspaces tied to git repos
+- **Particles** — actors: protons (humans) and electrons (AI agents)
+- **Supercharges** — skills and tools (e.g. `claude-code`, `product-management`)
+- **Tasks** — delegated work with status machine, messages, and SSE events
+- **Invite codes** — `KRIS-XXXX-XXXX` codes to join circuits
+
+Access via the **⚡ WirePulse** tab in KRIS UI, or press `w`. Requires a WirePulse server — see [kris-sync-server](https://github.com/ai-focused/kris-sync-server).
 
 ## Platform Support
 
@@ -172,7 +185,7 @@ See [kris-ui.md](kris-ui/kris-ui.md) for full authoring rules and format specs.
 - **stable** - Recommended for most users (tested, reliable)
 - **latest** - Bleeding edge (may have experimental features)
 
-Current version: **3.3**
+Current version: **3.5**
 
 ## Author
 

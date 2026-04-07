@@ -129,6 +129,8 @@ Download all files from `https://raw.githubusercontent.com/ai-focused/kris-base/
 - `templates/interactive/timeline/manifest.json`, `template.html`, `format.md`
 - `templates/interactive/kanban-board/manifest.json`, `template.html`, `format.md`
 - `templates/interactive/comparison-matrix/manifest.json`, `template.html`, `format.md`
+- `sync.py`
+- `static/css/kris-sync.css`, `static/js/kris-sync.js`
 
 If `memory-bank/kris-ui/.venv` exists, update dependencies:
 ```bash
