@@ -451,9 +451,9 @@ def search_files(query: str) -> list[dict]:
 app = Flask(__name__)
 scan_templates()
 
-# WirePulse (optional — only active if sync.py exists)
+# WirePulse (optional — only active if wirepulse.py exists)
 try:
-    from sync import wp_bp, init_wirepulse
+    from wirepulse import wp_bp, init_wirepulse
     app.register_blueprint(wp_bp)
     init_wirepulse(PROJECT_ROOT)
 except ImportError:

@@ -91,10 +91,10 @@ kris-base/
 │   └── kris-install.ps1    # Windows PowerShell
 ├── kris-ui/                # Local web documentation viewer (Flask)
 │   ├── kris-ui.py          # Main app
-│   ├── sync.py             # WirePulse proxy Blueprint
+│   ├── wirepulse.py        # WirePulse proxy Blueprint
 │   ├── kris-ui.md          # Authoring guide
 │   ├── templates/          # HTML templates + interactive templates
-│   └── static/             # CSS + JS (incl. kris-sync.js/css for WirePulse)
+│   └── static/             # CSS + JS (incl. kris-wirepulse.js/css)
 └── classic-approach/       # KRIS implementation
     ├── scaffolder/         # CLAUDE.md templates for initial setup
     └── remote-templates/   # Runtime templates, commands, and tasks

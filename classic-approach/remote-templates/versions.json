@@ -16,7 +16,7 @@
         "Circuit management: create circuit, join via invite code (KRIS-XXXX-XXXX), multi-circuit support",
         "Invite system: generate codes, copy, revoke, role selection (proton/electron)",
         "Unified About modal with tabs (About + Shortcuts), keyboard nav (v, ?, arrows), version check with 'Check again'",
-        "Proxy Blueprint (sync.py): all /api/wp/* routes, tokens stay server-side",
+        "Proxy Blueprint (wirepulse.py): all /api/wp/* routes, tokens stay server-side",
         "Forgiving interactive template parsers — accept both `- **Key**: Value` and `**Key**: Value` formats",
         "Format enforcement in kris-update specs and CLAUDE.md.base",
         "File line count in KRIS UI right-pane File Info metadata"
@@ -72,9 +72,9 @@
           "kris-ui/templates/interactive/comparison-matrix/manifest.json",
           "kris-ui/templates/interactive/comparison-matrix/template.html",
           "kris-ui/templates/interactive/comparison-matrix/format.md",
-          "kris-ui/sync.py",
-          "kris-ui/static/css/kris-sync.css",
-          "kris-ui/static/js/kris-sync.js"
+          "kris-ui/wirepulse.py",
+          "kris-ui/static/css/kris-wirepulse.css",
+          "kris-ui/static/js/kris-wirepulse.js"
         ]
       }
     },

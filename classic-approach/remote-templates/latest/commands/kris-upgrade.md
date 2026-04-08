@@ -129,8 +129,13 @@ Download all files from `https://raw.githubusercontent.com/ai-focused/kris-base/
 - `templates/interactive/timeline/manifest.json`, `template.html`, `format.md`
 - `templates/interactive/kanban-board/manifest.json`, `template.html`, `format.md`
 - `templates/interactive/comparison-matrix/manifest.json`, `template.html`, `format.md`
-- `sync.py`
-- `static/css/kris-sync.css`, `static/js/kris-sync.js`
+- `wirepulse.py`
+- `static/css/kris-wirepulse.css`, `static/js/kris-wirepulse.js`
+
+**Clean up old WirePulse file names** (renamed in v3.5):
+```bash
+rm -f memory-bank/kris-ui/sync.py memory-bank/kris-ui/static/css/kris-sync.css memory-bank/kris-ui/static/js/kris-sync.js
+```
 
 If `memory-bank/kris-ui/.venv` exists, update dependencies:
 ```bash
