@@ -114,6 +114,22 @@ If no state file exists, fall back to the argument-based default (stable unless 
 
 The state file is removed at the end of Step 2 (see step 2.7 — Cleanup pending channel marker). If the upgrade fails partway, the file remains and the next `/kris-upgrade` invocation will pick up where this one left off.
 
+#### 2.0a Backfill pending marker (defensive — helps users coming from v3.6 or older)
+
+**Context**: a user upgrading from v3.6 → v3.7 runs Step 1 using their ON-DISK v3.6 kris-upgrade command, which does NOT know about `.kris/.upgrade-pending` and never writes it. So when they re-run `/kris-upgrade latest` to trigger Step 2 (which is now the v3.7 command), `.kris/.upgrade-pending` is absent. Step 2 then falls back to the CLI argument — which works IFF the user remembers to type `latest` a second time. If they accidentally type `/kris-upgrade` with no argument, Step 2 silently downgrades them to the stable channel.
+
+**Backfill**: if `.kris/.upgrade-pending` does NOT exist BUT the user passed a channel argument on this invocation, write it immediately so any re-run of Step 2 (after a partial failure, for example) will resume on the correct channel:
+
+```bash
+if [ ! -f ".kris/.upgrade-pending" ] && [ -n "$CHANNEL" ]; then
+    mkdir -p .kris
+    echo "$CHANNEL" > .kris/.upgrade-pending
+    echo "Backfilled .kris/.upgrade-pending with channel: $CHANNEL"
+fi
+```
+
+This is a one-time transitional fix for the v3.6 → v3.7 bootstrap hop and can be removed in v3.8+ once all users are on v3.7+ where Step 1 writes the marker correctly.
+
 #### 2.1 Backup
 
 ```bash
@@ -134,6 +150,37 @@ Download ALL commands (the bootstrap already updated kris-upgrade, but re-downlo
 - `kris-archive.md`, `kris-compact.md`, `kris-query.md`
 
 Base URL: `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/commands/`
+
+### Post-download integrity check (applies to ALL downloads in Step 2)
+
+⚠️ `curl -sf` only validates HTTP 2xx. It does NOT catch truncated content, empty files, or CDN misconfiguration. After every download loop in Step 2 (commands, tasks, kris-ui files, kris-mcp files, AGENTS.md.base, CLAUDE.md.base), run a size check and fail loudly if anything came back suspiciously small:
+
+```bash
+# Minimum sizes by extension (bytes):
+#   .md   — 100  (must have at least a heading + a paragraph)
+#   .py   — 500  (smallest KRIS python is kris-mcp.py @ ~15k, but requirements.txt is 20 bytes so we check by name below)
+#   .json — 10   (minimal valid JSON: {})
+#   .html — 100
+#   .css  — 50
+#   .js   — 50
+#   .png/.ico — 100
+
+# Example check after downloading commands:
+for f in .claude/commands/kris*.md; do
+    [ -s "$f" ] || { echo "FAIL: $f is empty"; exit 1; }
+    sz=$(wc -c < "$f")
+    [ "$sz" -lt 100 ] && { echo "FAIL: $f too small ($sz bytes)"; exit 1; }
+done
+echo "✓ commands integrity ok"
+
+# Example for kris-mcp.py specifically (largest file, strictest check):
+[ -s .kris/kris-mcp/kris-mcp.py ] || { echo "FAIL: kris-mcp.py missing"; exit 1; }
+mcp_sz=$(wc -c < .kris/kris-mcp/kris-mcp.py)
+[ "$mcp_sz" -lt 5000 ] && { echo "FAIL: kris-mcp.py suspiciously small ($mcp_sz bytes — expected >14k)"; exit 1; }
+echo "✓ kris-mcp.py integrity ok ($mcp_sz bytes)"
+```
+
+Apply this pattern to every download loop. If any check fails, STOP the upgrade and report which file was corrupt. The user's existing files are unchanged (the bootstrap backup at step 2.1 is still safe).
 
 #### 2.3 Download KRIS Tasks (.kris/tasks/)
 
@@ -158,6 +205,14 @@ IF `AGENTS.md` exists AND already contains "KRIS" → skip (already configured)
 #### 2.5 Migrate tooling from memory-bank/ to .kris/ (v3.7 latest — one-time)
 
 v3.7 latest moves kris-ui and kris-mcp out of `memory-bank/` (which is reserved for ring documentation) into `.kris/` (the tooling home, alongside `.kris/tasks/` and `.kris/sync.json`).
+
+⚠️ **kris-mcp may be currently running** — Claude Code loads the MCP server from `.mcp.json` at session start. Moving `memory-bank/kris-mcp/` → `.kris/kris-mcp/` while this session is active means:
+- The running Python stdio process holds in-memory copies of the old source
+- Any kris-mcp tool call between now and Claude Code restart will continue to work (using the in-memory copy)
+- **You MUST restart Claude Code after the upgrade completes** for the new `.kris/kris-mcp/` path in `.mcp.json` to take effect
+- If you don't restart, future sessions will eventually fail because the running process still references the old memory-bank/ path at the OS file-descriptor level (Linux/macOS tolerate this; Windows may lock files)
+
+Report this warning to the user explicitly at the start of Step 2.5.
 
 **Log each step** — no user prompts, no backup. Migration is automatic because it's just file moves, venvs are rebuilt from scratch, and rollback is available via `git checkout v3.6-final` on the kris-base repo plus `git stash` on the user's project if they want to revert.
 
@@ -184,19 +239,40 @@ fi
 mkdir -p .kris/kris-ui/templates/interactive/dependency-graph .kris/kris-ui/templates/interactive/flow-diagram .kris/kris-ui/templates/interactive/entity-relationship .kris/kris-ui/templates/interactive/timeline .kris/kris-ui/templates/interactive/kanban-board .kris/kris-ui/templates/interactive/comparison-matrix .kris/kris-ui/static/css .kris/kris-ui/static/js .kris/kris-ui/static/img
 ```
 
-Download all files to `.kris/kris-ui/` from `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/kris-ui/`:
+Download all files to `.kris/kris-ui/` from `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/kris-ui/`.
+
+⚠️ **ZSH WORD-SPLITTING PITFALL** — macOS ships zsh as default, and zsh does NOT word-split unquoted variable expansion. This means `FILES="a b c"; for f in $FILES; do curl $f; done` treats the whole `$FILES` as a single token and fails on every iteration. ALWAYS use a **literal inline file list** in your `for` loop — never a shell variable — or use a bash-compatible array `files=(a b c); for f in "${files[@]}"; do ...; done`. The simplest safe form is:
+
+```bash
+BASE="https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/${CHANNEL}/kris-ui"
+for f in kris-ui.py kris-ui.md requirements.txt templates/index.html \
+         static/css/style.css static/css/interactive-base.css \
+         static/js/kris-ui.js static/js/interactive-base.js \
+         static/img/kris-logo.png static/img/favicon.ico \
+         templates/interactive/base.html \
+         wirepulse.py static/css/kris-wirepulse.css static/js/kris-wirepulse.js; do
+    curl -sf "$BASE/$f" -o ".kris/kris-ui/$f" && echo "ok $f" || echo "FAIL $f"
+done
+```
+
+Then download the interactive template files in a nested loop (also literal, not variable):
+```bash
+BASE_TPL="https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/${CHANNEL}/kris-ui/templates/interactive"
+for tpl in dependency-graph flow-diagram entity-relationship timeline kanban-board comparison-matrix; do
+    for f in manifest.json template.html format.md; do
+        curl -sf "$BASE_TPL/$tpl/$f" -o ".kris/kris-ui/templates/interactive/$tpl/$f" && echo "ok $tpl/$f" || echo "FAIL $tpl/$f"
+    done
+done
+```
+
+File list (for reference — keep the literal form above in sync if you change these):
 - `kris-ui.py`, `kris-ui.md`, `requirements.txt`
 - `templates/index.html`
 - `static/css/style.css`, `static/css/interactive-base.css`
 - `static/js/kris-ui.js`, `static/js/interactive-base.js`
 - `static/img/kris-logo.png`, `static/img/favicon.ico`
 - `templates/interactive/base.html`
-- `templates/interactive/dependency-graph/manifest.json`, `template.html`, `format.md`
-- `templates/interactive/flow-diagram/manifest.json`, `template.html`, `format.md`
-- `templates/interactive/entity-relationship/manifest.json`, `template.html`, `format.md`
-- `templates/interactive/timeline/manifest.json`, `template.html`, `format.md`
-- `templates/interactive/kanban-board/manifest.json`, `template.html`, `format.md`
-- `templates/interactive/comparison-matrix/manifest.json`, `template.html`, `format.md`
+- `templates/interactive/{dependency-graph,flow-diagram,entity-relationship,timeline,kanban-board,comparison-matrix}/{manifest.json, template.html, format.md}`
 - `wirepulse.py`
 - `static/css/kris-wirepulse.css`, `static/js/kris-wirepulse.js`
 
@@ -205,12 +281,15 @@ Download all files to `.kris/kris-ui/` from `https://raw.githubusercontent.com/a
 rm -f .kris/kris-ui/sync.py .kris/kris-ui/static/css/kris-sync.css .kris/kris-ui/static/js/kris-sync.js
 ```
 
-**Rebuild kris-ui venv** (Step 2.5 already dropped it if we migrated). Create if missing, update if present:
+**Rebuild kris-ui venv** (Step 2.5 already dropped it if we migrated). Create if missing, update if present.
+
+⚠️ **CWD hygiene** — ALWAYS wrap `cd` in a subshell `(cd ... && ...)` so your current working directory is restored after the command, even on failure. A bare `cd .kris/kris-ui && ...` leaves CWD drifted for the next bash call (the Bash tool preserves CWD across calls), which can cause subsequent `mkdir -p .kris/kris-mcp` to resolve to `.kris/kris-ui/.kris/kris-mcp/` — a stray nested directory that was the root cause of a v3.7 upgrade near-miss.
+
 ```bash
 if [ ! -d ".kris/kris-ui/.venv" ]; then
-    cd .kris/kris-ui && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt && cd ../..
+    (cd .kris/kris-ui && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt)
 else
-    cd .kris/kris-ui && .venv/bin/pip install -q -r requirements.txt && cd ../..
+    (cd .kris/kris-ui && .venv/bin/pip install -q -r requirements.txt)
 fi
 ```
 
@@ -230,16 +309,18 @@ Download from `https://raw.githubusercontent.com/ai-focused/kris-base/main/class
 ```
 Accept the first one that reports `3.10` or higher. If none qualify, **skip the venv creation and skip the .mcp.json registration**. Print a clear warning and instructions for the user to install Python 3.10+ and re-run `/kris-upgrade` or create the venv manually. Do NOT write a broken .mcp.json entry — Claude Code would fail to spawn a non-existent interpreter on every session.
 
-**Create or update the venv** (call the interpreter found above `$PY`):
+**Create or update the venv** (call the interpreter found above `$PY`).
+
+⚠️ **CWD hygiene** — ALWAYS use subshells for `cd` (same reason as kris-ui above: the Bash tool preserves CWD across calls, and a drifted CWD in Step 2.5b caused a v3.7 upgrade near-miss where kris-mcp landed at `.kris/kris-ui/.kris/kris-mcp/`). Subshells guarantee CWD is restored.
 
 If `.kris/kris-mcp/.venv` does NOT exist (fresh install OR just migrated from memory-bank/ in step 2.5):
 ```bash
-cd .kris/kris-mcp && $PY -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -r requirements.txt
+(cd .kris/kris-mcp && $PY -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -r requirements.txt)
 ```
 
 If `.kris/kris-mcp/.venv` exists (upgrading an existing v3.7 install):
 ```bash
-cd .kris/kris-mcp && .venv/bin/pip install -q -r requirements.txt
+(cd .kris/kris-mcp && .venv/bin/pip install -q -r requirements.txt)
 ```
 
 **On Windows**: use `.venv\Scripts\python.exe` and `.venv\Scripts\pip.exe` instead of `.venv/bin/python3` and `.venv/bin/pip`. Detect OS via CLAUDE.md "Shell Environment" section or by checking if `.kris/kris-mcp/.venv/bin` exists (Unix) vs `.kris/kris-mcp/.venv/Scripts` (Windows).
@@ -297,6 +378,19 @@ curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-app
 **2.6.3** Read the user's current CLAUDE.md (the real one, not the backup).
 
 **2.6.4** Read the new template (`.kris-temp-template.md`).
+
+**2.6.4b** **Whitespace-insensitive diff** — Many user projects run Prettier or similar formatters on CLAUDE.md (aligned tables, normalized blank lines, trailing-newline policies). A naive `diff -u user.md template.md` produces hundreds of lines of noise from whitespace alone, obscuring substantive changes. ALWAYS use `diff -b` or `diff --ignore-all-space` for the initial semantic scan:
+```bash
+diff -b CLAUDE.md .kris-temp-template.md
+```
+Or, for even more robust normalization, pipe both files through a whitespace collapser first:
+```bash
+sed -E 's/[[:space:]]+/ /g; s/^ +//; s/ +$//' CLAUDE.md > /tmp/kris-user-norm.md
+sed -E 's/[[:space:]]+/ /g; s/^ +//; s/ +$//' .kris-temp-template.md > /tmp/kris-tmpl-norm.md
+diff -u /tmp/kris-user-norm.md /tmp/kris-tmpl-norm.md
+rm -f /tmp/kris-user-norm.md /tmp/kris-tmpl-norm.md
+```
+Focus on semantic differences only. Do NOT propose changes that are purely cosmetic (blank-line adjustments, table column alignment, trailing newlines). The user's formatter will re-apply those on next save anyway.
 
 **2.6.5** Analyze and propose changes. Compare the two documents and identify:
 
@@ -379,6 +473,21 @@ If you reach this point but the rest of Step 2 failed partway, do NOT remove the
 │    • [N] customized sections unchanged                       │
 │    • [M] items flagged for manual review                     │
 ╰──────────────────────────────────────────────────────────────╯
+
+⚠️ Restart Claude Code now — kris-mcp was running during the upgrade
+   and the new .kris/kris-mcp/ path takes effect on next session start.
+
+Expected git changes (for v3.6 → v3.7 migration — mostly gitignored):
+   D  memory-bank/kris-ui/*   (moved to .kris/ — now gitignored)
+   D  memory-bank/kris-mcp/*  (moved to .kris/ — now gitignored)
+   M  CLAUDE.md               (version bump + path updates)
+   M  .mcp.json               (path migration)
+   M  .gitignore              (+ KRIS tooling block)
+   ??  CLAUDE.loves.KRIS.vX.Y.md.backup  (safe to delete after verification)
+
+The deletions under memory-bank/kris-*/ are EXPECTED — your tooling moved
+to .kris/ which is gitignored. Your ring documentation under
+memory-bank/core/, inner/, middle/, outer/ is untouched.
 
 To revert: /kris-upgrade X.Y
 ```

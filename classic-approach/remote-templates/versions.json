@@ -1,13 +1,90 @@
 {
   "current": {
     "stable": "3.6",
-    "latest": "3.7"
+    "latest": "3.7.1"
   },
   "versions": {
-    "3.7": {
+    "3.7.1": {
       "date": "2026-04-09",
       "channel": ["latest"],
+      "parent": "3.7",
+      "changelog": [
+        "Hardening release based on vera-nodus v3.6 → v3.7 upgrade report. Zero functional changes — all fixes patch shell-specific bugs in the upgrade command that nearly corrupted the v3.7 upgrade.",
+        "FIX #2 (CRITICAL): every `cd` in the upgrade command is now wrapped in a subshell `(cd X && ...)` to prevent CWD drift across Bash tool calls. Previous form left kris-mcp landing at `.kris/kris-ui/.kris/kris-mcp/` instead of `.kris/kris-mcp/` in a silent failure mode.",
+        "FIX #1 (CRITICAL): the kris-ui download loop now uses literal inline file lists (`for f in a b c; do`) instead of shell variables (`for f in $FILES`). zsh (macOS default) does not word-split unquoted variables, which caused the v3.6 → v3.7 upgrade to fail every file on first attempt.",
+        "FIX #7: post-download integrity checks with size guards. `curl -sf` only validates HTTP 2xx — it cannot catch truncated content, empty files, or CDN misconfiguration. Every download loop now runs `wc -c` with minimum thresholds by extension and fails loudly if anything came back suspiciously small.",
+        "FIX #5: smart CLAUDE.md merge now uses `diff -b` (ignore whitespace changes) for the initial scan, with an optional full-normalization fallback. Prettier-formatted user CLAUDE.md files used to produce hundreds of lines of noise from whitespace alone.",
+        "FIX #6: explicit warning at the start of Step 2.5 that kris-mcp may be currently running. Moving `memory-bank/kris-mcp/` → `.kris/kris-mcp/` while the session is active means Claude Code must restart after the upgrade.",
+        "FIX #10: completion report box now includes an 'Expected git changes' summary, explaining that the mass deletions under memory-bank/kris-*/ are intentional (migrated to gitignored .kris/).",
+        "FIX #4 (partial): defensive Step 2.0a backfills `.kris/.upgrade-pending` if a channel argument is present but the marker is missing. Helps v3.6 → v3.7 bootstrap flows where Step 1 runs the old on-disk command that doesn't write the marker."
+      ],
+      "files": {
+        "base": "CLAUDE.md.base",
+        "agents_base": "AGENTS.md.base",
+        "commands": [
+          "kris.md",
+          "kris-status.md",
+          "kris-update.md",
+          "kris-upgrade.md",
+          "kris-archive.md",
+          "kris-compact.md",
+          "kris-query.md"
+        ],
+        "kris_tasks": [
+          "tasks/kris.md",
+          "tasks/kris-status.md",
+          "tasks/kris-update.md",
+          "tasks/kris-upgrade.md",
+          "tasks/kris-archive.md",
+          "tasks/kris-compact.md",
+          "tasks/kris-query.md"
+        ],
+        "kris_ui": [
+          "kris-ui/kris-ui.py",
+          "kris-ui/kris-ui.md",
+          "kris-ui/requirements.txt",
+          "kris-ui/templates/index.html",
+          "kris-ui/static/css/style.css",
+          "kris-ui/static/css/interactive-base.css",
+          "kris-ui/static/js/kris-ui.js",
+          "kris-ui/static/js/interactive-base.js",
+          "kris-ui/static/img/kris-logo.png",
+          "kris-ui/static/img/favicon.ico",
+          "kris-ui/templates/interactive/base.html",
+          "kris-ui/templates/interactive/dependency-graph/manifest.json",
+          "kris-ui/templates/interactive/dependency-graph/template.html",
+          "kris-ui/templates/interactive/dependency-graph/format.md",
+          "kris-ui/templates/interactive/flow-diagram/manifest.json",
+          "kris-ui/templates/interactive/flow-diagram/template.html",
+          "kris-ui/templates/interactive/flow-diagram/format.md",
+          "kris-ui/templates/interactive/entity-relationship/manifest.json",
+          "kris-ui/templates/interactive/entity-relationship/template.html",
+          "kris-ui/templates/interactive/entity-relationship/format.md",
+          "kris-ui/templates/interactive/timeline/manifest.json",
+          "kris-ui/templates/interactive/timeline/template.html",
+          "kris-ui/templates/interactive/timeline/format.md",
+          "kris-ui/templates/interactive/kanban-board/manifest.json",
+          "kris-ui/templates/interactive/kanban-board/template.html",
+          "kris-ui/templates/interactive/kanban-board/format.md",
+          "kris-ui/templates/interactive/comparison-matrix/manifest.json",
+          "kris-ui/templates/interactive/comparison-matrix/template.html",
+          "kris-ui/templates/interactive/comparison-matrix/format.md",
+          "kris-ui/wirepulse.py",
+          "kris-ui/static/css/kris-wirepulse.css",
+          "kris-ui/static/js/kris-wirepulse.js"
+        ],
+        "kris_mcp": [
+          "kris-mcp/kris-mcp.py",
+          "kris-mcp/requirements.txt"
+        ]
+      }
+    },
+    "3.7": {
+      "date": "2026-04-09",
+      "channel": ["archived"],
       "parent": "3.6",
+      "deprecated": true,
+      "upgrade_to": "3.7.1",
       "changelog": [
         "Channel isolation — kris-ui/ and kris-mcp/ source files now live in classic-approach/remote-templates/{stable,latest}/ so each channel can evolve independently. Root copies removed.",
         "Tooling moved out of memory-bank/ into .kris/ — memory-bank/ is now exclusively for ring documentation. .kris/kris-ui/ and .kris/kris-mcp/ are the new homes. One-time automatic migration in /kris-upgrade handles existing v3.6 projects (moves dirs, drops + rebuilds venvs, rewrites .mcp.json command path).",

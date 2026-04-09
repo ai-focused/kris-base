@@ -35,6 +35,8 @@ IF backup exists → append timestamp.
 
 ## 6. Download Updated Files
 
+⚠️ **Shell portability** — When looping over file lists, use LITERAL inline lists (`for f in a b c; do`) or bash arrays (`files=(a b c); for f in "${files[@]}"; do`). NEVER `FILES="a b c"; for f in $FILES; do` — zsh (macOS default) does not word-split unquoted variables, causing every iteration to fail silently. Also wrap every `cd` in a subshell `(cd X && ...)` to prevent CWD drift between bash calls.
+
 ### Commands (.claude/commands/)
 Download all 7 command files from:
 `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/commands/`
@@ -75,10 +77,16 @@ If `memory-bank/kris-mcp` exists → `mv memory-bank/kris-mcp .kris/kris-mcp && 
 Venvs embed absolute paths — must be dropped and rebuilt in steps 9 and 10.
 
 ## 9. Rebuild kris-ui venv
+
+⚠️ ALWAYS wrap `cd` in a subshell `(cd ... && ...)` to prevent CWD drift into subsequent bash calls.
+
 ```
-cd .kris/kris-ui && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt
+(cd .kris/kris-ui && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt)
 ```
-If venv already exists (no migration needed), just `pip install -q -r requirements.txt`.
+If venv already exists (no migration needed):
+```
+(cd .kris/kris-ui && .venv/bin/pip install -q -r requirements.txt)
+```
 
 ## 10. Install or Update kris-mcp (MCP server)
 Download from `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/kris-mcp/`:
@@ -89,9 +97,9 @@ Download from `https://raw.githubusercontent.com/ai-focused/kris-base/main/class
 
 If no 3.10+ interpreter is found → SKIP venv creation AND .mcp.json registration. Print a warning. Do NOT write a broken .mcp.json entry.
 
-If `$PY` is found:
-- If `.kris/kris-mcp/.venv` does NOT exist → `cd .kris/kris-mcp && $PY -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -r requirements.txt`
-- If `.kris/kris-mcp/.venv` exists → `cd .kris/kris-mcp && .venv/bin/pip install -q -r requirements.txt`
+If `$PY` is found (ALWAYS use subshells — `(cd ... && ...)` — to prevent CWD drift):
+- If `.kris/kris-mcp/.venv` does NOT exist → `(cd .kris/kris-mcp && $PY -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -r requirements.txt)`
+- If `.kris/kris-mcp/.venv` exists → `(cd .kris/kris-mcp && .venv/bin/pip install -q -r requirements.txt)`
 - Verify with `.kris/kris-mcp/.venv/bin/python3 -c "import mcp, httpx"`. On Windows use `.venv\Scripts\python.exe`.
 - If verification passes, merge into `.mcp.json` at the repo root (idempotent — update the entry if it exists with an old `memory-bank/kris-mcp/...` path):
   ```json

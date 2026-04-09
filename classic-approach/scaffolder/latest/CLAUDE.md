@@ -1,6 +1,6 @@
 # KRIS Project Setup
 
-> **Scaffolder Version**: v3.7 (tooling in .kris/, channel isolation)
+> **Scaffolder Version**: v3.7.1 (tooling in .kris/, channel isolation, hardened upgrade)
 > This file will guide you through setting up KRIS for your project.
 
 ---
@@ -205,7 +205,7 @@ I'll validate your answers, help fill in any "not sure" responses, and create yo
 │  KRIS - Knowledge Rings Information System                   │
 │  Created by: Alexandru Negrila (alex@scaledagile.pro)        │
 │  Documentation: https://github.com/ai-focused/kris-base      │
-│  Version: 3.6                                                │
+│  Version: 3.7.1                                              │
 ╰──────────────────────────────────────────────────────────────╯
 
 ---
@@ -213,7 +213,7 @@ I'll validate your answers, help fill in any "not sure" responses, and create yo
 <!-- CLAUDE INSTRUCTIONS
 
 ## Overview
-This is a KRIS scaffolder (v3.7 - tooling in .kris/, channel isolation).
+This is a KRIS scaffolder (v3.7.1 - tooling in .kris/, channel isolation, hardened upgrade).
 When opened, run PHASE 0 (OS detection + auto-detection) first, then guide user through questionnaire.
 
 ⚠️ All shell examples in this file use Unix/bash syntax.
