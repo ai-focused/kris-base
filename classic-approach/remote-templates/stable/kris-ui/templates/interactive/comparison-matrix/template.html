@@ -1,0 +1,218 @@
+{% extends "interactive/base.html" %}
+{% block title %}Comparison Matrix{% endblock %}
+{% block toolbar_title %}Comparison Matrix{% endblock %}
+
+{% block head %}
+<style>
+  .matrix-container { padding: 24px 32px; max-width: 1100px; margin: 0 auto; }
+
+  .matrix-section { margin-bottom: 32px; }
+  .matrix-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .matrix-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: 13px;
+  }
+  .matrix-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s;
+    white-space: nowrap;
+  }
+  .matrix-table th:hover { background: var(--bg-hover); }
+  .matrix-table th.sorted-asc::after { content: ' ▲'; font-size: 9px; color: var(--accent); }
+  .matrix-table th.sorted-desc::after { content: ' ▼'; font-size: 9px; color: var(--accent); }
+
+  .matrix-table td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    transition: background .1s;
+  }
+  .matrix-table tr:last-child td { border-bottom: none; }
+  .matrix-table tr:hover td { background: var(--bg-hover); }
+  .matrix-table tr.highlighted td { background: rgba(124,92,255,.06); }
+  .matrix-table td:first-child {
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  /* Cell coloring */
+  .cell-yes { color: var(--mvp-color); font-weight: 600; }
+  .cell-no { color: #ef4444; }
+  .cell-partial { color: var(--post-mvp-color); }
+  .cell-number { color: var(--accent); font-family: var(--font-mono); font-size: 12px; }
+
+  /* No data */
+  .matrix-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+</style>
+{% endblock %}
+
+{% block toolbar_controls %}
+<a class="toolbar-btn" href="/" title="Back to KRIS">Back to KRIS</a>
+{% endblock %}
+
+{% block body %}
+<div class="matrix-container" id="matrix-container">
+  <div style="text-align:center;padding:40px;color:var(--text-muted)">Loading matrices...</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  'use strict';
+  const src = KRISInteractive.getQueryParam('src');
+  if (!src) { KRISInteractive.showError(document.getElementById('matrix-container'), 'No source file', 'Pass ?src=path/to/file.md'); return; }
+
+  // Detect cell type for coloring
+  const yesValues = new Set(['yes', 'true', 'full', 'high', 'complete', '✅', '[x]', '✓']);
+  const noValues = new Set(['no', 'false', 'none', 'low', '✗', '❌', '✘', 'n/a']);
+  const partialValues = new Set(['partial', 'medium', 'limited', '⚠️', '⚠', 'some']);
+
+  function cellClass(value) {
+    const lower = value.toLowerCase().trim();
+    if (yesValues.has(lower)) return 'cell-yes';
+    if (noValues.has(lower)) return 'cell-no';
+    if (partialValues.has(lower)) return 'cell-partial';
+    if (/^\d+(\.\d+)?%?$/.test(lower) || /^\$+$/.test(lower)) return 'cell-number';
+    return '';
+  }
+
+  function parseTables(md) {
+    const sections = KRISInteractive.parseSections(md);
+    const tables = [];
+
+    // Find all tables in the document, grouped by their parent H2 section
+    let currentTitle = '';
+    const lines = md.split('\n');
+    let i = 0;
+    while (i < lines.length) {
+      const h2 = lines[i].match(/^## (.+)/);
+      if (h2) currentTitle = h2[1].trim();
+
+      // Detect table start
+      if (lines[i].trim().startsWith('|') && i + 1 < lines.length && lines[i + 1].includes('---')) {
+        const tableLines = [];
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          tableLines.push(lines[i]);
+          i++;
+        }
+        // Parse header
+        const headerCells = tableLines[0].split('|').map(c => c.trim()).filter(c => c);
+        if (headerCells.length >= 3) {
+          // Skip separator line
+          const rows = [];
+          for (let r = 2; r < tableLines.length; r++) {
+            const cells = tableLines[r].split('|').map(c => c.trim()).filter(c => c);
+            if (cells.length >= 2) rows.push(cells);
+          }
+          if (rows.length > 0) {
+            tables.push({ title: currentTitle, headers: headerCells, rows: rows });
+          }
+        }
+      }
+      i++;
+    }
+    return tables;
+  }
+
+  function render(tables) {
+    const container = document.getElementById('matrix-container');
+    if (tables.length === 0) {
+      container.innerHTML = '<div class="matrix-empty">No comparison tables found.<br>Expected tables with 3+ columns.</div>';
+      return;
+    }
+
+    container.innerHTML = tables.map((table, ti) => {
+      const headersHtml = table.headers.map((h, hi) =>
+        `<th data-table="${ti}" data-col="${hi}" onclick="sortMatrix(${ti}, ${hi})">${h}</th>`
+      ).join('');
+
+      const rowsHtml = table.rows.map((row, ri) => {
+        const cellsHtml = row.map((cell, ci) => {
+          const cls = ci > 0 ? cellClass(cell) : '';
+          return `<td class="${cls}" title="${cell}">${cell}</td>`;
+        }).join('');
+        // Pad if row has fewer cells than headers
+        const padding = table.headers.length - row.length;
+        const padHtml = padding > 0 ? '<td></td>'.repeat(padding) : '';
+        return `<tr onclick="this.classList.toggle('highlighted')">${cellsHtml}${padHtml}</tr>`;
+      }).join('');
+
+      return `<div class="matrix-section">
+        ${table.title ? `<div class="matrix-title">${table.title}</div>` : ''}
+        <table class="matrix-table" id="matrix-${ti}">
+          <thead><tr>${headersHtml}</tr></thead>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>`;
+    }).join('');
+  }
+
+  // Sort state per table
+  const sortState = {};
+
+  window.sortMatrix = function(tableIdx, colIdx) {
+    const table = document.getElementById('matrix-' + tableIdx);
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const key = tableIdx + '-' + colIdx;
+    const dir = sortState[key] === 'asc' ? 'desc' : 'asc';
+    sortState[key] = dir;
+
+    // Clear sort indicators
+    table.querySelectorAll('th').forEach(th => th.classList.remove('sorted-asc', 'sorted-desc'));
+    table.querySelector(`th[data-col="${colIdx}"]`).classList.add('sorted-' + dir);
+
+    rows.sort((a, b) => {
+      const aVal = (a.children[colIdx] || {}).textContent || '';
+      const bVal = (b.children[colIdx] || {}).textContent || '';
+      const aNum = parseFloat(aVal);
+      const bNum = parseFloat(bVal);
+      if (!isNaN(aNum) && !isNaN(bNum)) return dir === 'asc' ? aNum - bNum : bNum - aNum;
+      return dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+
+    rows.forEach(r => tbody.appendChild(r));
+  };
+
+  async function init() {
+    try {
+      const raw = await KRISInteractive.fetchRaw(src);
+      const { body } = KRISInteractive.parseFrontmatter(raw);
+      render(parseTables(body));
+    } catch (err) {
+      KRISInteractive.showError(document.getElementById('matrix-container'), 'Error', err.message);
+    }
+  }
+  init();
+})();
+</script>
+{% endblock %}

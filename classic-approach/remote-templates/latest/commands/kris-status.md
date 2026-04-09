@@ -30,7 +30,7 @@ MCP path skips the manual word-count step entirely.
    ```bash
    find memory-bank -name "*.md" -not -path "*/kris-ui/*" -exec wc -w {} \;
    ```
-   **NOTE**: Always exclude `memory-bank/kris-ui/` — it contains the KRIS UI app, not ring documentation.
+   **NOTE**: Always exclude `.kris/` — it contains KRIS tooling (kris-ui, kris-mcp, tasks, sync.json), not ring documentation. memory-bank/ is exclusively rings.
 
 2. **Calculate tokens per ring** (words x 1.3):
    - Core Ring = CLAUDE.md + memory-bank/core/*.md

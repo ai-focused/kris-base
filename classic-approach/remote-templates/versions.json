@@ -1,12 +1,88 @@
 {
   "current": {
     "stable": "3.6",
-    "latest": "3.6"
+    "latest": "3.7"
   },
   "versions": {
+    "3.7": {
+      "date": "2026-04-09",
+      "channel": ["latest"],
+      "parent": "3.6",
+      "changelog": [
+        "Channel isolation — kris-ui/ and kris-mcp/ source files now live in classic-approach/remote-templates/{stable,latest}/ so each channel can evolve independently. Root copies removed.",
+        "Tooling moved out of memory-bank/ into .kris/ — memory-bank/ is now exclusively for ring documentation. .kris/kris-ui/ and .kris/kris-mcp/ are the new homes. One-time automatic migration in /kris-upgrade handles existing v3.6 projects (moves dirs, drops + rebuilds venvs, rewrites .mcp.json command path).",
+        "wp_status returns `self: true` on the caller's particle, derived from .kris/sync.json me.id (persisted during join/create flow). Backward compatible — old sync.json without me.id falls back to no flag.",
+        "wirepulse.py /api/wp/create-circuit now returns particle_id in the response (was previously only in /api/wp/join).",
+        "Scaffolder auto-registers .mcp.json at the repo root after kris-mcp venv creation — new installs get a working MCP server without needing /kris-upgrade first.",
+        "Installer + upgrader auto-write .gitignore entries — .kris/ and .claude/commands/kris*.md are KRIS tooling, not project content. Only CLAUDE.md, AGENTS.md, and memory-bank/ stay committed.",
+        "Installer (kris-install.sh + .ps1) branches on VERSION — latest writes to .kris/kris-{ui,mcp}/, stable writes to memory-bank/kris-{ui,mcp}/ (v3.6 behavior preserved).",
+        "kris-ui.py gained a _discover_memory_bank() helper that walks up parents to find memory-bank/ — works from both .kris/kris-ui/ (v3.7) and memory-bank/kris-ui/ (v3.6 legacy) locations.",
+        "kris-mcp.py EXCLUDED_DIRS is now empty — kris-ui and kris-mcp no longer live under memory-bank/ so no exclusion needed."
+      ],
+      "files": {
+        "base": "CLAUDE.md.base",
+        "agents_base": "AGENTS.md.base",
+        "commands": [
+          "kris.md",
+          "kris-status.md",
+          "kris-update.md",
+          "kris-upgrade.md",
+          "kris-archive.md",
+          "kris-compact.md",
+          "kris-query.md"
+        ],
+        "kris_tasks": [
+          "tasks/kris.md",
+          "tasks/kris-status.md",
+          "tasks/kris-update.md",
+          "tasks/kris-upgrade.md",
+          "tasks/kris-archive.md",
+          "tasks/kris-compact.md",
+          "tasks/kris-query.md"
+        ],
+        "kris_ui": [
+          "kris-ui/kris-ui.py",
+          "kris-ui/kris-ui.md",
+          "kris-ui/requirements.txt",
+          "kris-ui/templates/index.html",
+          "kris-ui/static/css/style.css",
+          "kris-ui/static/css/interactive-base.css",
+          "kris-ui/static/js/kris-ui.js",
+          "kris-ui/static/js/interactive-base.js",
+          "kris-ui/static/img/kris-logo.png",
+          "kris-ui/static/img/favicon.ico",
+          "kris-ui/templates/interactive/base.html",
+          "kris-ui/templates/interactive/dependency-graph/manifest.json",
+          "kris-ui/templates/interactive/dependency-graph/template.html",
+          "kris-ui/templates/interactive/dependency-graph/format.md",
+          "kris-ui/templates/interactive/flow-diagram/manifest.json",
+          "kris-ui/templates/interactive/flow-diagram/template.html",
+          "kris-ui/templates/interactive/flow-diagram/format.md",
+          "kris-ui/templates/interactive/entity-relationship/manifest.json",
+          "kris-ui/templates/interactive/entity-relationship/template.html",
+          "kris-ui/templates/interactive/entity-relationship/format.md",
+          "kris-ui/templates/interactive/timeline/manifest.json",
+          "kris-ui/templates/interactive/timeline/template.html",
+          "kris-ui/templates/interactive/timeline/format.md",
+          "kris-ui/templates/interactive/kanban-board/manifest.json",
+          "kris-ui/templates/interactive/kanban-board/template.html",
+          "kris-ui/templates/interactive/kanban-board/format.md",
+          "kris-ui/templates/interactive/comparison-matrix/manifest.json",
+          "kris-ui/templates/interactive/comparison-matrix/template.html",
+          "kris-ui/templates/interactive/comparison-matrix/format.md",
+          "kris-ui/wirepulse.py",
+          "kris-ui/static/css/kris-wirepulse.css",
+          "kris-ui/static/js/kris-wirepulse.js"
+        ],
+        "kris_mcp": [
+          "kris-mcp/kris-mcp.py",
+          "kris-mcp/requirements.txt"
+        ]
+      }
+    },
     "3.6": {
       "date": "2026-04-09",
-      "channel": ["stable", "latest"],
+      "channel": ["stable"],
       "parent": "3.5",
       "changelog": [
         "kris-mcp — MCP server for ring operations (kris_status/list/read/write/append/search/move) and WirePulse coordination (wp_status/tasks/task_create/task_claim/task_status/messages_list/message_post/claim_file/claim_release/invite_create)",

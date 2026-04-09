@@ -1,6 +1,6 @@
 # KRIS Project Setup
 
-> **Scaffolder Version**: v3.6 (kris-mcp MCP server)
+> **Scaffolder Version**: v3.7 (tooling in .kris/, channel isolation)
 > This file will guide you through setting up KRIS for your project.
 
 ---
@@ -213,7 +213,7 @@ I'll validate your answers, help fill in any "not sure" responses, and create yo
 <!-- CLAUDE INSTRUCTIONS
 
 ## Overview
-This is a KRIS scaffolder (v3.6 - kris-mcp MCP server).
+This is a KRIS scaffolder (v3.7 - tooling in .kris/, channel isolation).
 When opened, run PHASE 0 (OS detection + auto-detection) first, then guide user through questionnaire.
 
 ⚠️ All shell examples in this file use Unix/bash syntax.
@@ -360,6 +360,8 @@ mkdir -p memory-bank/middle
 mkdir -p memory-bank/outer/archive
 mkdir -p .claude/commands
 mkdir -p .kris/tasks
+mkdir -p .kris/kris-mcp
+mkdir -p .kris/kris-ui
 ```
 
 ### Step 5: CREATE README FILES (minimal, 5 lines each)
@@ -701,7 +703,61 @@ IF `AGENTS.md` exists AND contains "KRIS" → skip (already configured)
 mv .kris-temp/CLAUDE.md.base CLAUDE.md
 ```
 
-**10.5 Cleanup:**
+**10.5 Install kris-mcp (MCP server for ring operations + WirePulse):**
+
+Download kris-mcp source:
+```bash
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/kris-mcp/kris-mcp.py" > .kris/kris-mcp/kris-mcp.py
+curl -s "https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/latest/kris-mcp/requirements.txt" > .kris/kris-mcp/requirements.txt
+```
+
+Find Python 3.10+ (try `python3.13`, `python3.12`, `python3.11`, `python3.10`, `python3` in order). For each candidate:
+```bash
+<candidate> -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'
+```
+Accept the first one that reports `3.10` or higher.
+
+If found (call it `$PY`):
+```bash
+cd .kris/kris-mcp && $PY -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -r requirements.txt && cd ../..
+```
+
+Verify the venv works:
+```bash
+.kris/kris-mcp/.venv/bin/python3 -c "import mcp, httpx"
+```
+
+If the import check passes, register kris-mcp in `.mcp.json` at the repo root. Claude Code reads project-scoped MCP servers from `.mcp.json` (NOT from `.claude/settings.json` — that file is for permissions/hooks/statusLine and ignores `mcpServers`):
+
+```json
+{
+  "mcpServers": {
+    "kris-mcp": {
+      "command": ".kris/kris-mcp/.venv/bin/python3",
+      "args": [".kris/kris-mcp/kris-mcp.py"]
+    }
+  }
+}
+```
+
+On Windows, use `.kris\\kris-mcp\\.venv\\Scripts\\python.exe` as the command.
+
+Merge idempotently — if `.mcp.json` already exists, preserve all other keys and only add `mcpServers.kris-mcp` if not already present.
+
+If Python 3.10+ is not found OR the import check fails, SKIP the venv creation AND the `.mcp.json` write. Print a warning with manual-install instructions. Do NOT write a broken `.mcp.json` entry — Claude Code would fail to spawn a non-existent interpreter on every session start.
+
+**10.6 Update .gitignore (idempotent):**
+
+KRIS tooling (`.kris/`, `.claude/commands/kris*.md`) is downloaded on install/upgrade — it's not project content and shouldn't be committed. Append this block to `.gitignore` if not already present:
+
+```
+# KRIS tooling — installed via kris-install.sh or /kris-upgrade
+.kris/
+.claude/commands/kris.md
+.claude/commands/kris-*.md
+```
+
+**10.7 Cleanup:**
 ```bash
 rm -rf .kris-temp
 ```
@@ -715,16 +771,19 @@ Display:
 ╰──────────────────────────────────────────────────────────────╯
 
 Created:
-  📁 memory-bank/
+  📁 memory-bank/ (committed to git)
      ├── core/ (projectBrief, productContext, techContext)
      ├── inner/ (activeContext, progress)
      ├── middle/
-     ├── outer/archive/
-     └── kris-ui/ (web viewer for KRIS docs)
-  📁 .claude/commands/ (7 KRIS commands)
-  📁 .kris/tasks/ (7 agent-agnostic task specs)
-  📄 CLAUDE.md
-  📄 AGENTS.md (multi-agent support)
+     └── outer/archive/
+  📁 .kris/ (gitignored — KRIS tooling)
+     ├── tasks/ (7 agent-agnostic task specs)
+     ├── kris-ui/ (web viewer for KRIS docs)
+     └── kris-mcp/ (MCP server, registered in .mcp.json)
+  📁 .claude/commands/ (gitignored — 7 KRIS slash commands)
+  📄 CLAUDE.md (committed)
+  📄 AGENTS.md (committed — multi-agent support)
+  📄 .mcp.json (committed — kris-mcp registration)
 
 Available commands:
   /kris          - Show status and next steps
@@ -732,7 +791,7 @@ Available commands:
   /kris-upgrade  - Upgrade KRIS version
 
 KRIS UI (visual doc browser):
-  cd memory-bank/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python3 kris-ui.py
+  cd .kris/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python3 kris-ui.py
   Then open http://localhost:5111
 
 Next steps:

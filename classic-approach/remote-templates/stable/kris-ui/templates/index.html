@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KRIS — {{ project_name }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>{{ pygments_css }}</style>
+<link rel="stylesheet" href="/static/css/style.css">
+<link rel="stylesheet" href="/static/css/kris-wirepulse.css">
+<link rel="icon" href="/static/img/favicon.ico" type="image/x-icon">
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <div id="header">
+    <div class="logo" onclick="showHome()" style="cursor:pointer" title="Dashboard">
+      <img src="/static/img/kris-logo.png" alt="KRIS" class="logo-img">
+      KRIS
+      <span class="logo-sep">|</span>
+      {% if has_project_logo %}<img src="/api/project-logo" alt="" class="logo-project-img">{% endif %}
+      <span>{{ project_name }}</span>
+    </div>
+    <nav class="header-nav">
+      <a href="#" id="nav-home" onclick="event.preventDefault();showHome()">Home</a>
+      <a href="#" id="nav-docs" class="active" onclick="event.preventDefault();showDocs()">Docs</a>
+      <a href="#" id="nav-interactive" onclick="event.preventDefault();showInteractiveDocs()">Interactive</a>
+      <a href="#" id="nav-sync" style="display:none;position:relative" onclick="event.preventDefault();showSync()">⚡ WirePulse <span class="sync-badge" id="sync-badge" style="display:none"></span></a>
+    </nav>
+    <div class="header-spacer"></div>
+    <span class="freshness-dot" id="freshness-dot" onclick="selectRing('inner');selectFile('inner/progress.md')" title="Checking freshness..."></span>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme">&#x263E;</button>
+    <div id="search-box">
+      <span class="search-icon">&#x1F50D;</span>
+      <input type="text" id="search-input" placeholder="Search...  /" autocomplete="off">
+      <div id="search-results"></div>
+    </div>
+  </div>
+
+  <!-- Unified modal (About + Shortcuts) -->
+  <div class="modal-overlay" id="kris-modal" onclick="if(event.target===this)closeKrisModal()">
+    <div class="modal about-modal">
+      <div class="kris-modal-header">
+        <div class="kris-modal-tabs">
+          <button class="kris-modal-tab active" data-tab="about" onclick="switchModalTab('about')">
+            <img src="/static/img/kris-logo.png" alt="" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:4px">About
+          </button>
+          <button class="kris-modal-tab" data-tab="shortcuts" onclick="switchModalTab('shortcuts')">Shortcuts</button>
+        </div>
+        <span class="caps-badge" id="caps-badge" style="display:none">&#x25B2; CAPS</span>
+        <button class="modal-close" onclick="closeKrisModal()">&times;</button>
+      </div>
+
+      <!-- About tab -->
+      <div class="kris-modal-body" id="modal-tab-about">
+        <div class="about-current">
+          <div class="about-label">Installed Version</div>
+          <div class="about-version">v{{ kris_version }}</div>
+        </div>
+        <div id="about-update"><p style="font-size:12px;color:var(--text-muted);padding:8px 0">Checking for updates...</p></div>
+        <div id="about-changelog"><p style="font-size:12px;color:var(--text-muted);padding:8px 0">Loading changelog...</p></div>
+        <div class="about-credits">
+          <div class="about-label" style="margin-top:16px">Credits</div>
+          <p style="font-size:12px;color:var(--text-secondary)">Created by Alexandru Negrila</p>
+          <p style="font-size:12px"><a href="https://github.com/ai-focused/kris-base" style="color:var(--accent)">github.com/ai-focused/kris-base</a></p>
+        </div>
+      </div>
+
+      <!-- Shortcuts tab -->
+      <div class="kris-modal-body" id="modal-tab-shortcuts" style="display:none">
+        <div class="shortcut-group">
+          <div class="shortcut-group-label">Navigation</div>
+          <div class="shortcut-row"><span class="desc">Core ring</span><kbd>1</kbd></div>
+          <div class="shortcut-row"><span class="desc">Inner ring</span><kbd>2</kbd></div>
+          <div class="shortcut-row"><span class="desc">Middle ring</span><kbd>3</kbd></div>
+          <div class="shortcut-row"><span class="desc">Outer ring</span><kbd>4</kbd></div>
+          <div class="shortcut-row"><span class="desc">Browse files</span><kbd>&#x2191;</kbd> <kbd>&#x2193;</kbd></div>
+          <div class="shortcut-row"><span class="desc">Open focused file</span><kbd>Enter</kbd></div>
+        </div>
+        <div class="shortcut-group">
+          <div class="shortcut-group-label">Quick Access</div>
+          <div class="shortcut-row"><span class="desc">Home / Dashboard</span><kbd data-letter="h">h</kbd></div>
+          <div class="shortcut-row"><span class="desc">Active Context</span><kbd data-letter="a">a</kbd></div>
+          <div class="shortcut-row"><span class="desc">Progress</span><kbd data-letter="p">p</kbd></div>
+          <div class="shortcut-row"><span class="desc">CLAUDE.md</span><kbd data-letter="c">c</kbd></div>
+          <div class="shortcut-row"><span class="desc">WirePulse</span><kbd data-letter="w">w</kbd></div>
+        </div>
+        <div class="shortcut-group">
+          <div class="shortcut-group-label">Search</div>
+          <div class="shortcut-row"><span class="desc">Focus search</span><kbd>/</kbd></div>
+          <div class="shortcut-row"><span class="desc">Focus search</span><kbd style="font-size:10px">&#8984;K</kbd></div>
+          <div class="shortcut-row"><span class="desc">Navigate results</span><kbd>&#x2191;</kbd> <kbd>&#x2193;</kbd></div>
+          <div class="shortcut-row"><span class="desc">Open selected</span><kbd>Enter</kbd></div>
+          <div class="shortcut-row"><span class="desc">Close / blur</span><kbd>Esc</kbd></div>
+        </div>
+        <div class="shortcut-group">
+          <div class="shortcut-group-label">Other</div>
+          <div class="shortcut-row"><span class="desc">Shortcuts</span><kbd>?</kbd></div>
+          <div class="shortcut-row"><span class="desc">About / Version</span><kbd data-letter="v">v</kbd></div>
+          <div class="shortcut-row"><span class="desc">Switch tab (in modal)</span><kbd>&#x2190;</kbd> <kbd>&#x2192;</kbd></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="ring-nav" id="ring-nav"></div>
+    <div class="divider"></div>
+    <div class="file-tree-label" id="tree-label">Files</div>
+    <div class="file-tree" id="file-tree"></div>
+  </div>
+
+  <!-- Content -->
+  <div id="content" tabindex="0">
+    <button class="jump-btn" id="jump-btn" onclick="nextHit()" title="Next match (Enter)">&#x2193; Match</button>
+    <div class="welcome-state" id="welcome">
+      <div class="welcome-dashboard" id="welcome-dashboard">
+        <div class="welcome-hero">
+          <div class="welcome-logos">
+            <img src="/static/img/kris-logo.png" alt="KRIS" class="welcome-logo">
+            {% if has_project_logo %}
+            <span class="welcome-logos-sep">|</span>
+            <img src="/api/project-logo" alt="{{ project_name }}" class="welcome-logo welcome-project-logo">
+            {% endif %}
+          </div>
+          <h1>{{ project_name }}</h1>
+          <p class="welcome-subtitle">Knowledge Rings Information System</p>
+        </div>
+        <div class="welcome-rings" id="welcome-rings"></div>
+        <div class="welcome-activity" id="welcome-activity">
+          <div class="welcome-section" id="welcome-achievements">
+            <h3>Recent Achievements</h3>
+            <div class="welcome-loading">Loading...</div>
+          </div>
+          <div class="welcome-section" id="welcome-next-steps">
+            <h3>Next Steps</h3>
+            <div class="welcome-loading">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="file-view" style="display:none" class="md-body"></div>
+  </div>
+
+  <!-- Metadata -->
+  <div id="meta-panel">
+    <div class="meta-empty" id="meta-empty">Select a file to view metadata</div>
+    <div id="meta-content" style="display:none"></div>
+  </div>
+</div>
+
+<!-- Floating help button -->
+<button class="help-btn" onclick="openKrisModal('shortcuts')" title="Keyboard shortcuts (?)">?</button>
+<span class="version-label" id="version-label" onclick="openKrisModal('about')" title="KRIS v{{ kris_version }}">KRIS v{{ kris_version }}</span>
+
+<!-- Config injection from Python -->
+<script>
+  const RING_ORDER = {{ ring_order | tojson }};
+  const RINGS_CONFIG = {{ rings_config | tojson }};
+  const PROJECT_NAME = {{ project_name | tojson }};
+  const MEMORY_BANK_PATH = {{ memory_bank_path | tojson }};
+</script>
+<script src="/static/js/kris-ui.js"></script>
+<script src="/static/js/kris-wirepulse.js"></script>
+</body>
+</html>

@@ -43,8 +43,8 @@ Download all 7 command files from:
 Download all 7 task files from:
 `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/tasks/`
 
-### KRIS UI (memory-bank/kris-ui/)
-Create directories and download all files. See versions.json `files.kris_ui` for the complete list.
+### KRIS UI (.kris/kris-ui/ — v3.7+; memory-bank/kris-ui/ in v3.6 and earlier)
+Create directories and download all files. See versions.json `files.kris_ui` for the complete list. v3.7 latest installs to `.kris/kris-ui/`. v3.6 stable installs to `memory-bank/kris-ui/`.
 
 ### AGENTS.md
 Download `AGENTS.md.base`.
@@ -65,32 +65,50 @@ Propose targeted changes:
 
 Show merge plan. Apply only approved changes via edits, not file replacement.
 
-## 8. Update Dependencies
-IF `memory-bank/kris-ui/.venv` exists:
-```
-cd memory-bank/kris-ui && .venv/bin/pip install -q -r requirements.txt
-```
+## 8. Migrate tooling from memory-bank/ to .kris/ (v3.7 — automatic, no prompts)
 
-## 9. Install or Update kris-mcp (MCP server)
-Download from `https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-mcp/`:
-- `kris-mcp.py` → `memory-bank/kris-mcp/kris-mcp.py`
-- `requirements.txt` → `memory-bank/kris-mcp/requirements.txt`
+v3.7 moves kris-ui and kris-mcp out of `memory-bank/` (reserved for ring documentation) into `.kris/` (tooling home).
+
+If `memory-bank/kris-ui` exists → `mv memory-bank/kris-ui .kris/kris-ui && rm -rf .kris/kris-ui/.venv`
+If `memory-bank/kris-mcp` exists → `mv memory-bank/kris-mcp .kris/kris-mcp && rm -rf .kris/kris-mcp/.venv`
+
+Venvs embed absolute paths — must be dropped and rebuilt in steps 9 and 10.
+
+## 9. Rebuild kris-ui venv
+```
+cd .kris/kris-ui && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt
+```
+If venv already exists (no migration needed), just `pip install -q -r requirements.txt`.
+
+## 10. Install or Update kris-mcp (MCP server)
+Download from `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/kris-mcp/`:
+- `kris-mcp.py` → `.kris/kris-mcp/kris-mcp.py`
+- `requirements.txt` → `.kris/kris-mcp/requirements.txt`
 
 **Find Python 3.10+**: try `python3.13`, `python3.12`, `python3.11`, `python3.10`, `python3` in order. For each, check `sys.version_info >= (3, 10)`. Take the first match as `$PY`.
 
-If no 3.10+ interpreter is found → SKIP venv creation AND settings.json registration. Print a warning with instructions. Do NOT write a broken settings.json entry.
+If no 3.10+ interpreter is found → SKIP venv creation AND .mcp.json registration. Print a warning. Do NOT write a broken .mcp.json entry.
 
 If `$PY` is found:
-- If `memory-bank/kris-mcp/.venv` does NOT exist → `cd memory-bank/kris-mcp && $PY -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -r requirements.txt`
-- If `memory-bank/kris-mcp/.venv` exists → `cd memory-bank/kris-mcp && .venv/bin/pip install -q -r requirements.txt`
-- Verify with `memory-bank/kris-mcp/.venv/bin/python3 -c "import mcp, httpx"`. On Windows use `.venv\Scripts\python.exe`.
-- If verification passes, merge into `.mcp.json` at the repo root (idempotent — skip if `mcpServers.kris-mcp` already present):
+- If `.kris/kris-mcp/.venv` does NOT exist → `cd .kris/kris-mcp && $PY -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -r requirements.txt`
+- If `.kris/kris-mcp/.venv` exists → `cd .kris/kris-mcp && .venv/bin/pip install -q -r requirements.txt`
+- Verify with `.kris/kris-mcp/.venv/bin/python3 -c "import mcp, httpx"`. On Windows use `.venv\Scripts\python.exe`.
+- If verification passes, merge into `.mcp.json` at the repo root (idempotent — update the entry if it exists with an old `memory-bank/kris-mcp/...` path):
   ```json
-  {"mcpServers": {"kris-mcp": {"command": "memory-bank/kris-mcp/.venv/bin/python3", "args": ["memory-bank/kris-mcp/kris-mcp.py"]}}}
+  {"mcpServers": {"kris-mcp": {"command": ".kris/kris-mcp/.venv/bin/python3", "args": [".kris/kris-mcp/kris-mcp.py"]}}}
   ```
-- Claude Code reads project MCP servers from `.mcp.json` at the repo root — NOT from `.claude/settings.json`. Using the wrong file silently leaves kris-mcp unloaded.
-- Preserve all other keys in `.mcp.json`. On Windows use `memory-bank\\kris-mcp\\.venv\\Scripts\\python.exe`.
-- **Migration from early-v3.6 builds**: if `.claude/settings.json` contains `mcpServers.kris-mcp`, move it to `.mcp.json` and remove it from `.claude/settings.json`. Leave `.claude/settings.json` as `{}` if empty after removal — do not delete the file.
+- Claude Code reads project MCP servers from `.mcp.json` at the repo root — NOT from `.claude/settings.json`.
+- Preserve all other keys in `.mcp.json`. On Windows use `.kris\\kris-mcp\\.venv\\Scripts\\python.exe`.
+- **Migration from early-v3.6 builds**: if `.claude/settings.json` contains `mcpServers.kris-mcp`, move it to `.mcp.json` (with the new `.kris/` path) and remove it from `.claude/settings.json`.
+
+## 11. Update .gitignore (idempotent)
+If `.gitignore` does not contain `# KRIS tooling`, append:
+```
+# KRIS tooling — installed via kris-install.sh or /kris-upgrade
+.kris/
+.claude/commands/kris.md
+.claude/commands/kris-*.md
+```
 
 # OUTPUT FORMAT (STRICT)
 

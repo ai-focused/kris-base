@@ -1,0 +1,6 @@
+{
+  "id": "kanban-board",
+  "name": "Kanban Board",
+  "description": "Card board with status columns — visualizes tasks grouped by To Do, In Progress, and Done.",
+  "version": "1.0"
+}

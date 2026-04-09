@@ -1,0 +1,6 @@
+{
+  "id": "dependency-graph",
+  "name": "Dependency Graph",
+  "description": "Interactive node graph showing modules and their dependencies with phase badges, container info, and flow membership.",
+  "version": "1.0"
+}

@@ -77,7 +77,7 @@ Update activeContext.md with current session progress.
    ```
 
    IMPORTANT: Structured fields MUST use bullet-prefix format: `- **Key**: Value` (not `**Key**: Value`).
-   See [kris-ui.md](memory-bank/kris-ui/kris-ui.md#interactive-documentation) for format rules.
+   See [.kris/kris-ui/kris-ui.md](.kris/kris-ui/kris-ui.md#interactive-documentation) for format rules.
 
 7. **Suggest next action**:
    Based on what was updated, suggest logical next step.

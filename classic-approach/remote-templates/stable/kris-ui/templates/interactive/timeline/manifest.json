@@ -1,0 +1,6 @@
+{
+  "id": "timeline",
+  "name": "Timeline",
+  "description": "Horizontal timeline showing milestones, completion history, and phase progression with date-based layout.",
+  "version": "1.0"
+}

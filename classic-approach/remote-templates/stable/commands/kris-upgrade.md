@@ -122,7 +122,7 @@ IF `AGENTS.md` exists AND already contains "KRIS" → skip (already configured)
 mkdir -p memory-bank/kris-ui/templates/interactive/dependency-graph memory-bank/kris-ui/templates/interactive/flow-diagram memory-bank/kris-ui/templates/interactive/entity-relationship memory-bank/kris-ui/templates/interactive/timeline memory-bank/kris-ui/templates/interactive/kanban-board memory-bank/kris-ui/templates/interactive/comparison-matrix memory-bank/kris-ui/static/css memory-bank/kris-ui/static/js memory-bank/kris-ui/static/img
 ```
 
-Download all files from `https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-ui/`:
+Download all files from `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/kris-ui/`:
 - `kris-ui.py`, `kris-ui.md`, `requirements.txt`
 - `templates/index.html`
 - `static/css/style.css`, `static/css/interactive-base.css`
@@ -154,7 +154,7 @@ cd memory-bank/kris-ui && .venv/bin/pip install -q -r requirements.txt
 mkdir -p memory-bank/kris-mcp
 ```
 
-Download from `https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-mcp/`:
+Download from `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/kris-mcp/`:
 - `kris-mcp.py`
 - `requirements.txt`
 

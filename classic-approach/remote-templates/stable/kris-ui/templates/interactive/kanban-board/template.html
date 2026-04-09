@@ -1,0 +1,231 @@
+{% extends "interactive/base.html" %}
+{% block title %}Kanban Board{% endblock %}
+{% block toolbar_title %}Kanban Board{% endblock %}
+
+{% block head %}
+<style>
+  .kanban-container {
+    display: flex;
+    gap: 16px;
+    padding: 20px;
+    height: 100%;
+    overflow-x: auto;
+    align-items: flex-start;
+  }
+  .kanban-column {
+    min-width: 260px;
+    max-width: 320px;
+    flex-shrink: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 120px);
+  }
+  .kanban-col-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .kanban-col-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .kanban-col-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .kanban-col-count {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    background: var(--bg-card);
+    padding: 1px 7px;
+    border-radius: 10px;
+  }
+  .kanban-col-body {
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .kanban-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all .15s;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+  .kanban-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    transform: translateY(-1px);
+  }
+  .kanban-card.selected {
+    border-color: var(--accent);
+    background: rgba(124,92,255,.05);
+  }
+  .kanban-card-category {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    margin-bottom: 4px;
+  }
+
+  /* Column colors */
+  .kanban-column[data-status="todo"] .kanban-col-dot { background: var(--border-light); }
+  .kanban-column[data-status="in-progress"] .kanban-col-dot { background: var(--post-mvp-color); }
+  .kanban-column[data-status="done"] .kanban-col-dot { background: var(--mvp-color); }
+
+  .kanban-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  /* Category colors */
+  .cat-0 { background: rgba(124,92,255,.12); color: #a893ff; }
+  .cat-1 { background: rgba(76,175,80,.12); color: #6fcf73; }
+  .cat-2 { background: rgba(74,144,217,.12); color: #6ab0f7; }
+  .cat-3 { background: rgba(212,168,67,.12); color: #D4A843; }
+  .cat-4 { background: rgba(239,68,68,.12); color: #f87171; }
+</style>
+{% endblock %}
+
+{% block toolbar_controls %}
+<div style="display:flex;gap:8px" id="filters"></div>
+<a class="toolbar-btn" href="/" title="Back to KRIS">Back to KRIS</a>
+{% endblock %}
+
+{% block body %}
+<div class="kanban-container" id="kanban-container">
+  <div style="text-align:center;padding:40px;color:var(--text-muted);width:100%">Loading board...</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  'use strict';
+  const src = KRISInteractive.getQueryParam('src');
+  if (!src) { KRISInteractive.showError(document.getElementById('kanban-container'), 'No source file', 'Pass ?src=path/to/file.md'); return; }
+
+  function parseBoard(md) {
+    const columns = {};
+    const categories = new Set();
+
+    // Try explicit columns: ## Board > ### Column Name
+    const boardSection = md.split(/^## Board$/m)[1];
+    if (boardSection) {
+      const end = boardSection.search(/^## (?!Board)/m);
+      const content = end > -1 ? boardSection.slice(0, end) : boardSection;
+      const blocks = content.split(/^### /m).filter(b => b.trim());
+      for (const block of blocks) {
+        const lines = block.split('\n');
+        const colName = lines[0].trim();
+        const status = colName.toLowerCase().includes('done') ? 'done' :
+                       colName.toLowerCase().includes('progress') ? 'in-progress' : 'todo';
+        if (!columns[status]) columns[status] = { name: colName, items: [] };
+        for (const line of lines.slice(1)) {
+          const done = line.match(/^[-*]\s+\[x\]\s+(.+)/i);
+          const pending = line.match(/^[-*]\s+\[ \]\s+(.+)/);
+          const inProg = line.match(/^[-*]\s+\[-\]\s+(.+)/);
+          if (done) columns[status].items.push({ text: done[1].trim(), done: true });
+          if (pending) columns[status].items.push({ text: pending[1].trim(), done: false });
+          if (inProg) columns[status].items.push({ text: inProg[1].trim(), done: false, inProgress: true });
+        }
+      }
+    }
+
+    // Fallback: auto-detect from all checkboxes grouped by ## section
+    if (Object.keys(columns).length === 0) {
+      const todo = [], done = [];
+      let currentCategory = '';
+      md.split('\n').forEach(line => {
+        const h2 = line.match(/^## (.+)/);
+        if (h2) currentCategory = h2[1].trim();
+        const doneMatch = line.match(/^[-*]\s+\[x\]\s+(.+)/i);
+        const pendingMatch = line.match(/^[-*]\s+\[ \]\s+(.+)/);
+        if (doneMatch) { done.push({ text: doneMatch[1].trim(), category: currentCategory }); if (currentCategory) categories.add(currentCategory); }
+        if (pendingMatch) { todo.push({ text: pendingMatch[1].trim(), category: currentCategory }); if (currentCategory) categories.add(currentCategory); }
+      });
+      if (todo.length > 0) columns['todo'] = { name: 'To Do', items: todo };
+      if (done.length > 0) columns['done'] = { name: 'Done', items: done };
+    }
+
+    return { columns, categories: [...categories] };
+  }
+
+  const categoryColors = ['cat-0', 'cat-1', 'cat-2', 'cat-3', 'cat-4'];
+
+  function render(data) {
+    const container = document.getElementById('kanban-container');
+    const { columns, categories } = data;
+
+    if (Object.keys(columns).length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-muted);width:100%">No board data found.<br>Expected <code>## Board</code> with <code>### Column</code> sub-sections,<br>or <code>- [ ]</code> / <code>- [x]</code> checkbox items.</div>';
+      return;
+    }
+
+    const catColorMap = {};
+    categories.forEach((c, i) => { catColorMap[c] = categoryColors[i % categoryColors.length]; });
+
+    const order = ['todo', 'in-progress', 'done'];
+    container.innerHTML = order.filter(s => columns[s]).map(status => {
+      const col = columns[status];
+      const cardsHtml = col.items.length > 0
+        ? col.items.map(item => {
+            const catHtml = item.category ? `<div class="kanban-card-category ${catColorMap[item.category] || 'cat-0'}">${item.category}</div>` : '';
+            return `<div class="kanban-card" data-category="${item.category || ''}">${catHtml}${item.text}</div>`;
+          }).join('')
+        : '<div class="kanban-empty">No items</div>';
+      return `<div class="kanban-column" data-status="${status}">
+        <div class="kanban-col-header">
+          <span class="kanban-col-title"><span class="kanban-col-dot"></span>${col.name}</span>
+          <span class="kanban-col-count">${col.items.length}</span>
+        </div>
+        <div class="kanban-col-body">${cardsHtml}</div>
+      </div>`;
+    }).join('');
+
+    // Filters by category
+    if (categories.length > 1) {
+      KRISInteractive.initFilters(document.getElementById('filters'),
+        [{ label: 'All', value: 'all', active: true }, ...categories.map(c => ({ label: c, value: c }))],
+        val => {
+          document.querySelectorAll('.kanban-card').forEach(card => {
+            card.style.display = (val === 'all' || card.dataset.category === val) ? '' : 'none';
+          });
+        }
+      );
+    }
+  }
+
+  async function init() {
+    try {
+      const raw = await KRISInteractive.fetchRaw(src);
+      const { body } = KRISInteractive.parseFrontmatter(raw);
+      render(parseBoard(body));
+    } catch (err) {
+      KRISInteractive.showError(document.getElementById('kanban-container'), 'Error', err.message);
+    }
+  }
+  init();
+})();
+</script>
+{% endblock %}

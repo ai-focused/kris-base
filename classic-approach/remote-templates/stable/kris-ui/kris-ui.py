@@ -14,7 +14,7 @@ import yaml
 
 from flask import Flask, jsonify, request, abort, Response, render_template
 
-KRIS_VERSION = "3.5"
+KRIS_VERSION = "3.6"
 import markdown
 from markdown.extensions.codehilite import CodeHiliteExtension
 from pygments.formatters import HtmlFormatter

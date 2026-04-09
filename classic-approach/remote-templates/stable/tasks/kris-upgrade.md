@@ -72,7 +72,7 @@ cd memory-bank/kris-ui && .venv/bin/pip install -q -r requirements.txt
 ```
 
 ## 9. Install or Update kris-mcp (MCP server)
-Download from `https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-mcp/`:
+Download from `https://raw.githubusercontent.com/ai-focused/kris-base/main/classic-approach/remote-templates/{channel}/kris-mcp/`:
 - `kris-mcp.py` → `memory-bank/kris-mcp/kris-mcp.py`
 - `requirements.txt` → `memory-bank/kris-mcp/requirements.txt`
 

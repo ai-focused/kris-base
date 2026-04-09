@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Interactive View{% endblock %} — KRIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/interactive-base.css">
+{% block head %}{% endblock %}
+</head>
+<body data-embed="{{ request.args.get('embed', 'false') }}">
+<div id="interactive-root">
+  {% block toolbar %}
+  <div class="interactive-toolbar" id="toolbar">
+    <div class="toolbar-left">
+      <span class="toolbar-title">{% block toolbar_title %}{% endblock %}</span>
+    </div>
+    <div class="toolbar-right">
+      {% block toolbar_controls %}
+      <a class="toolbar-btn" href="/" title="Back to KRIS">Back to KRIS</a>
+      {% endblock %}
+    </div>
+  </div>
+  {% endblock %}
+  <div class="interactive-body" id="interactive-body">
+    {% block body %}{% endblock %}
+  </div>
+</div>
+<script src="/static/js/interactive-base.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

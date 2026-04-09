@@ -128,7 +128,15 @@ try {
 Write-Host ""
 Write-Host "Downloading KRIS UI..." -ForegroundColor Cyan
 
-$KRIS_UI_DIR = "memory-bank\kris-ui"
+# v3.7 latest moves tooling out of memory-bank/ into .kris/.
+# Stable still uses memory-bank/ for backwards compatibility.
+if ($VERSION -eq "latest") {
+    $KRIS_UI_DIR = ".kris\kris-ui"
+    $KRIS_MCP_DIR = ".kris\kris-mcp"
+} else {
+    $KRIS_UI_DIR = "memory-bank\kris-ui"
+    $KRIS_MCP_DIR = "memory-bank\kris-mcp"
+}
 $KRIS_UI_FILES = @(
     "kris-ui.py",
     "kris-ui.md",
@@ -177,7 +185,7 @@ New-Item -ItemType Directory -Force -Path "$KRIS_UI_DIR\static\img" | Out-Null
 
 $kris_ui_ok = $true
 foreach ($file in $KRIS_UI_FILES) {
-    $url = "$GITHUB_RAW_ROOT/kris-ui/$file"
+    $url = "$GITHUB_RAW_BASE/remote-templates/$VERSION/kris-ui/$file"
     $dest = "$KRIS_UI_DIR\$($file -replace '/', '\')"
     try {
         Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
@@ -197,14 +205,14 @@ if ($kris_ui_ok) {
 Write-Host ""
 Write-Host "Downloading kris-mcp..." -ForegroundColor Cyan
 
-$KRIS_MCP_DIR = "memory-bank\kris-mcp"
+# KRIS_MCP_DIR was set earlier based on $VERSION
 $KRIS_MCP_FILES = @("kris-mcp.py", "requirements.txt")
 
 New-Item -ItemType Directory -Force -Path $KRIS_MCP_DIR | Out-Null
 
 $kris_mcp_ok = $true
 foreach ($file in $KRIS_MCP_FILES) {
-    $url = "$GITHUB_RAW_ROOT/kris-mcp/$file"
+    $url = "$GITHUB_RAW_BASE/remote-templates/$VERSION/kris-mcp/$file"
     $dest = "$KRIS_MCP_DIR\$file"
     try {
         Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
@@ -244,7 +252,7 @@ if ($kris_mcp_ok) {
                 $kris_mcp_venv_ok = $true
             } else {
                 Write-Host "⚠ kris-mcp venv creation failed — install later with:" -ForegroundColor Yellow
-                Write-Host "    cd memory-bank\kris-mcp; $kris_mcp_py -m venv .venv; .venv\Scripts\pip install -r requirements.txt" -ForegroundColor Yellow
+                Write-Host "    cd $KRIS_MCP_DIR; $kris_mcp_py -m venv .venv; .venv\Scripts\pip install -r requirements.txt" -ForegroundColor Yellow
             }
         } catch {
             Pop-Location -ErrorAction SilentlyContinue
@@ -252,7 +260,7 @@ if ($kris_mcp_ok) {
         }
     } else {
         Write-Host "⚠ Python 3.10+ not found — kris-mcp needs it. After installing:" -ForegroundColor Yellow
-        Write-Host "    cd memory-bank\kris-mcp; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt" -ForegroundColor Yellow
+        Write-Host "    cd $KRIS_MCP_DIR; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt" -ForegroundColor Yellow
     }
 
     # Register kris-mcp in .mcp.json (project root) ONLY if the venv is actually usable.
@@ -271,8 +279,8 @@ if ($kris_mcp_ok) {
             }
             if (-not $mcp.mcpServers.PSObject.Properties.Match("kris-mcp").Count) {
                 $krisMcp = [PSCustomObject]@{
-                    command = "memory-bank\kris-mcp\.venv\Scripts\python.exe"
-                    args    = @("memory-bank\kris-mcp\kris-mcp.py")
+                    command = "$KRIS_MCP_DIR\.venv\Scripts\python.exe"
+                    args    = @("$KRIS_MCP_DIR\kris-mcp.py")
                 }
                 $mcp.mcpServers | Add-Member -NotePropertyName "kris-mcp" -NotePropertyValue $krisMcp
                 $mcp | ConvertTo-Json -Depth 10 | Set-Content $mcpJsonPath
@@ -380,6 +388,29 @@ if (Test-Path "AGENTS.md") {
     }
 }
 
+# Add KRIS tooling entries to .gitignore (idempotent).
+# KRIS tooling (.kris/, .claude/commands/kris*.md) is downloaded on install/upgrade —
+# it's not project content and shouldn't be committed.
+Write-Host ""
+Write-Host "Updating .gitignore..." -ForegroundColor Cyan
+if (-not (Test-Path ".gitignore")) {
+    New-Item -ItemType File -Path ".gitignore" | Out-Null
+}
+$gitignoreContent = Get-Content .gitignore -Raw -ErrorAction SilentlyContinue
+if (-not ($gitignoreContent -match "# KRIS tooling")) {
+    $krisBlock = @"
+
+# KRIS tooling — installed via kris-install.ps1 or /kris-upgrade
+.kris/
+.claude/commands/kris.md
+.claude/commands/kris-*.md
+"@
+    Add-Content -Path .gitignore -Value $krisBlock
+    Write-Host "✓ KRIS tooling entries added to .gitignore" -ForegroundColor Green
+} else {
+    Write-Host "✓ .gitignore already has KRIS tooling entries" -ForegroundColor Green
+}
+
 # Success message and next steps
 Write-Host ""
 Write-Host "╭──────────────────────────────────────────────────────────────╮" -ForegroundColor Green
@@ -399,13 +430,13 @@ Write-Host "     • Help you choose the best options for your project"
 Write-Host "     • Create the complete KRIS structure"
 Write-Host ""
 Write-Host "  KRIS UI: After setup, start the visual doc browser with:" -ForegroundColor Green
-Write-Host "     cd memory-bank\kris-ui; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt; .venv\Scripts\python kris-ui.py" -ForegroundColor Cyan
+Write-Host "     cd $KRIS_UI_DIR; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt; .venv\Scripts\python kris-ui.py" -ForegroundColor Cyan
 Write-Host ""
 if ($kris_mcp_venv_ok) {
     Write-Host "  kris-mcp: Registered in .mcp.json — Claude Code will load it on next session." -ForegroundColor Green
 } else {
     Write-Host "  kris-mcp: Venv not ready. After installing Python 3.10+, run:" -ForegroundColor Yellow
-    Write-Host "     cd memory-bank\kris-mcp; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt" -ForegroundColor Cyan
+    Write-Host "     cd $KRIS_MCP_DIR; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt" -ForegroundColor Cyan
     Write-Host "     Then create .mcp.json at the repo root with the kris-mcp entry" -ForegroundColor Cyan
 }
 Write-Host ""

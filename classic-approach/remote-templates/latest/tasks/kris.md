@@ -4,8 +4,8 @@ Display KRIS welcome banner, project status, KRIS UI status, and available tasks
 # INPUTS
 - `memory-bank/inner/activeContext.md`
 - `memory-bank/inner/progress.md`
-- `memory-bank/kris-ui/kris-ui.py` (check existence)
-- `memory-bank/kris-ui/.venv/` (check existence)
+- `.kris/kris-ui/kris-ui.py` (check existence)
+- `.kris/kris-ui/.venv/` (check existence)
 
 # EXECUTION PATH
 Prefer kris-mcp tools when available:
@@ -48,7 +48,7 @@ From `activeContext.md` and `progress.md`, extract:
 
 ## 4. Check KRIS UI
 
-IF `memory-bank/kris-ui/kris-ui.py` exists:
+IF `.kris/kris-ui/kris-ui.py` exists:
   - Show: Installed
   - IF `.venv/` exists: show start command
   - ELSE: show first-time setup command

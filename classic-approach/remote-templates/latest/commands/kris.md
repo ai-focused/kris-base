@@ -70,22 +70,22 @@ Extract:
 
 Check if KRIS UI is installed:
 ```bash
-ls memory-bank/kris-ui/kris-ui.py 2>/dev/null
+ls .kris/kris-ui/kris-ui.py 2>/dev/null
 ```
 
 If installed, show:
 ```
 ╭──────────────────────────────────────────────────────────────╮
 │  KRIS UI: Installed                                          │
-│  Start:   cd memory-bank/kris-ui && .venv/bin/python3 kris-ui.py │
+│  Start:   cd .kris/kris-ui && .venv/bin/python3 kris-ui.py │
 │  URL:     http://localhost:5111                               │
 ╰──────────────────────────────────────────────────────────────╯
 ```
 
-Check if venv exists (`memory-bank/kris-ui/.venv/`). If not, suggest first-time setup:
+Check if venv exists (`.kris/kris-ui/.venv/`). If not, suggest first-time setup:
 ```
   First time? Run:
-    cd memory-bank/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+    cd .kris/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 
 If NOT installed, suggest:

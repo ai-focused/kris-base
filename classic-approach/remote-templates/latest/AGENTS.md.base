@@ -74,9 +74,9 @@ For the complete rule set, read [CLAUDE.md](CLAUDE.md).
 
 ## KRIS UI
 
-Local web viewer for KRIS documentation: `cd memory-bank/kris-ui && .venv/bin/python3 kris-ui.py`
+Local web viewer for KRIS documentation: `cd .kris/kris-ui && .venv/bin/python3 kris-ui.py`
 
-See [kris-ui.md](memory-bank/kris-ui/kris-ui.md) for authoring rules and interactive template format specs.
+See [kris-ui.md](.kris/kris-ui/kris-ui.md) for authoring rules and interactive template format specs.
 
 ---
 
@@ -92,14 +92,14 @@ For **Claude Code**: registered in `.mcp.json` at the repo root (created automat
 {
   "mcpServers": {
     "kris-mcp": {
-      "command": "memory-bank/kris-mcp/.venv/bin/python3",
-      "args": ["memory-bank/kris-mcp/kris-mcp.py"]
+      "command": ".kris/kris-mcp/.venv/bin/python3",
+      "args": [".kris/kris-mcp/kris-mcp.py"]
     }
   }
 }
 ```
 
-On Windows, use `memory-bank\\kris-mcp\\.venv\\Scripts\\python.exe` as the command.
+On Windows, use `.kris\\kris-mcp\\.venv\\Scripts\\python.exe` as the command.
 
 For **other MCP-aware agents** (Codex, Cursor, Copilot, Windsurf), register with the same stdio command and args following your agent's MCP configuration convention.
 
@@ -123,4 +123,4 @@ Use `wp_status` as a heartbeat on long-running tasks (every 5 minutes) to stay m
 - Do not skip required steps in tasks
 - Prefer structured outputs over free text
 - Follow task specifications exactly
-- Exclude `memory-bank/kris-ui/` from ring analysis
+- Exclude `.kris/kris-ui/` from ring analysis

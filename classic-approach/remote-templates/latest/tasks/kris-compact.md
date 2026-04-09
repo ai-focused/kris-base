@@ -1,10 +1,10 @@
 # TASK
 Analyze ring content for optimization opportunities and execute approved actions.
 
-**NOTE**: Exclude `memory-bank/kris-ui/` and `memory-bank/kris-mcp/` from all analysis. kris-mcp handles these exclusions automatically.
+**NOTE**: Exclude `.kris/` from all analysis — it's the tooling home (kris-ui, kris-mcp, tasks, sync.json), not ring documentation. memory-bank/ is exclusively rings. kris-mcp handles these exclusions automatically.
 
 # INPUTS
-- All `*.md` files in `memory-bank/` (excluding `kris-ui/` and `kris-mcp/`)
+- All `*.md` files in `memory-bank/`
 - `CLAUDE.md`
 - Token budgets: Core 15k, Inner 30k, Middle 50k/file, Outer unlimited
 
@@ -76,5 +76,5 @@ List recommended actions. Get user approval before executing.
 # CONSTRAINTS
 - Do NOT read full file contents — use word counts and metadata
 - Do NOT execute without user approval
-- Exclude `memory-bank/kris-ui/` from analysis
+- Exclude `.kris/` from analysis (tooling, not rings)
 - Do NOT compact structured sections that interactive templates depend on (## Modules, ## Tables, ## User Flows)

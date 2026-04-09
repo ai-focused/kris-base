@@ -5,7 +5,7 @@ Analyze token usage across KRIS memory rings and report status.
 - File system under:
   - CLAUDE.md
   - memory-bank/
-- Exclude: memory-bank/kris-ui/ and memory-bank/kris-mcp/ (kris-mcp handles exclusion automatically)
+- Exclude: .kris/ (tooling — kris-ui, kris-mcp, tasks, sync.json). kris-mcp handles exclusion automatically.
 
 # EXECUTION PATH
 Prefer kris-mcp tools when available:
@@ -99,4 +99,4 @@ Add tip:
 # CONSTRAINTS
 - Do NOT read full file contents
 - Use metadata only (word counts)
-- Exclude memory-bank/kris-ui/
+- Exclude .kris/ (tooling — kris-ui, kris-mcp, tasks, sync.json)

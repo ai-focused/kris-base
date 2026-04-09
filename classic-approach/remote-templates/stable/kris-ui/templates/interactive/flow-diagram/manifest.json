@@ -1,0 +1,6 @@
+{
+  "id": "flow-diagram",
+  "name": "Flow Diagram",
+  "description": "Step-by-step user flow visualization with module attribution per step and cross-flow highlighting.",
+  "version": "1.0"
+}

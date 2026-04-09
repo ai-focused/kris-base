@@ -20,7 +20,7 @@ IF ring is invalid → show error with valid options.
 
 ## 2. Search
 Search for topic in the specified ring's `*.md` files.
-IF ring is `all` → search all rings (exclude `memory-bank/kris-ui/`).
+IF ring is `all` → search all rings (exclude `.kris/` — tooling, not rings).
 IF ring is `core` → also search `CLAUDE.md`.
 
 Use grep or equivalent — do NOT read entire files.
@@ -52,5 +52,5 @@ Suggestions:
 
 # CONSTRAINTS
 - Do NOT read full file contents — use search/grep only
-- Exclude `memory-bank/kris-ui/` when searching `all`
+- Exclude `.kris/` when searching `all` (tooling, not rings)
 - Limit results to 50 matches

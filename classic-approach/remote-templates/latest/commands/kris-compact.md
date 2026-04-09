@@ -1,6 +1,6 @@
 Optimize ring content and suggest what to archive.
 
-**NOTE**: Always exclude `memory-bank/kris-ui/` and `memory-bank/kris-mcp/` from analysis — they contain the KRIS UI app and MCP server, not ring documentation. (kris-mcp applies this exclusion automatically.)
+**NOTE**: Always exclude `.kris/` from analysis — it's the tooling home (kris-ui, kris-mcp, tasks, sync.json), not ring documentation. memory-bank/ is exclusively rings. (kris-mcp applies this exclusion automatically.)
 
 ## EXECUTION PATH
 
