@@ -1,5 +1,17 @@
 Show KRIS welcome banner, credits, project status, and available commands.
 
+## EXECUTION PATH
+
+**Preferred (kris-mcp tools available):**
+- `kris_status()` → ring overview for the banner
+- `kris_read("inner/activeContext.md")` → current focus, active tasks, blockers
+- `kris_read("inner/progress.md")` → milestone status
+
+**Fallback (kris-mcp not available):**
+- Read the same files directly with the Read tool (current behaviour)
+
+Detect availability by checking whether the `kris_*` tools are present. The output format below is identical either way.
+
 ## Instructions
 
 ### 1. Display Banner

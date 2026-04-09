@@ -11,6 +11,16 @@ Examples:
 
 Valid rings: core, inner, middle, outer, all
 
+## EXECUTION PATH
+
+**Preferred (kris-mcp tools available):**
+- `kris_search(ring, pattern)` → matches with file, line number, and surrounding context (up to 50 results)
+
+**Fallback (kris-mcp not available):**
+- Use grep via bash (current behaviour shown below)
+
+Output format is identical. MCP path returns structured results — no regex escaping issues.
+
 ## Instructions
 
 **IMPORTANT**: Use grep for searching - DO NOT read entire files!

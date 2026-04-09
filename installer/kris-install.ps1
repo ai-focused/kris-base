@@ -193,6 +193,103 @@ if ($kris_ui_ok) {
     Write-Host "⚠ Some KRIS UI files failed to download. You can re-run the installer later." -ForegroundColor Yellow
 }
 
+# Download kris-mcp (MCP server for ring operations + WirePulse)
+Write-Host ""
+Write-Host "Downloading kris-mcp..." -ForegroundColor Cyan
+
+$KRIS_MCP_DIR = "memory-bank\kris-mcp"
+$KRIS_MCP_FILES = @("kris-mcp.py", "requirements.txt")
+
+New-Item -ItemType Directory -Force -Path $KRIS_MCP_DIR | Out-Null
+
+$kris_mcp_ok = $true
+foreach ($file in $KRIS_MCP_FILES) {
+    $url = "$GITHUB_RAW_ROOT/kris-mcp/$file"
+    $dest = "$KRIS_MCP_DIR\$file"
+    try {
+        Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
+    } catch {
+        Write-Host "  ✗ Failed: $file" -ForegroundColor Red
+        $kris_mcp_ok = $false
+    }
+}
+
+$kris_mcp_venv_ok = $false
+if ($kris_mcp_ok) {
+    Write-Host "✓ kris-mcp downloaded ($($KRIS_MCP_FILES.Count) files)" -ForegroundColor Green
+
+    # Try to find a Python 3.10+ interpreter — kris-mcp needs it.
+    $kris_mcp_py = $null
+    foreach ($candidate in @("python3.13", "python3.12", "python3.11", "python3.10", "python", "python3")) {
+        $cmd = Get-Command $candidate -ErrorAction SilentlyContinue
+        if ($cmd) {
+            $ver = & $candidate -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
+            if ($ver -match "^3\.(\d+)$" -and [int]$Matches[1] -ge 10) {
+                $kris_mcp_py = $cmd.Source
+                break
+            }
+        }
+    }
+
+    if ($kris_mcp_py) {
+        Write-Host "  Creating kris-mcp venv ($kris_mcp_py)..." -ForegroundColor Cyan
+        try {
+            Push-Location $KRIS_MCP_DIR
+            & $kris_mcp_py -m venv .venv 2>&1 | Out-Null
+            & ".venv\Scripts\python.exe" -m pip install -q --upgrade pip 2>&1 | Out-Null
+            & ".venv\Scripts\pip.exe" install -q -r requirements.txt 2>&1 | Out-Null
+            Pop-Location
+            if (Test-Path "$KRIS_MCP_DIR\.venv\Scripts\python.exe") {
+                Write-Host "✓ kris-mcp venv ready" -ForegroundColor Green
+                $kris_mcp_venv_ok = $true
+            } else {
+                Write-Host "⚠ kris-mcp venv creation failed — install later with:" -ForegroundColor Yellow
+                Write-Host "    cd memory-bank\kris-mcp; $kris_mcp_py -m venv .venv; .venv\Scripts\pip install -r requirements.txt" -ForegroundColor Yellow
+            }
+        } catch {
+            Pop-Location -ErrorAction SilentlyContinue
+            Write-Host "⚠ kris-mcp venv creation failed: $_" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "⚠ Python 3.10+ not found — kris-mcp needs it. After installing:" -ForegroundColor Yellow
+        Write-Host "    cd memory-bank\kris-mcp; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt" -ForegroundColor Yellow
+    }
+
+    # Register kris-mcp in .mcp.json (project root) ONLY if the venv is actually usable.
+    # Claude Code reads project-scoped MCP servers from .mcp.json at the repo root —
+    # NOT from .claude/settings.json.
+    if ($kris_mcp_venv_ok) {
+        $mcpJsonPath = ".mcp.json"
+        try {
+            if (Test-Path $mcpJsonPath) {
+                $mcp = Get-Content $mcpJsonPath -Raw | ConvertFrom-Json
+            } else {
+                $mcp = [PSCustomObject]@{}
+            }
+            if (-not $mcp.PSObject.Properties.Match("mcpServers").Count) {
+                $mcp | Add-Member -NotePropertyName "mcpServers" -NotePropertyValue ([PSCustomObject]@{})
+            }
+            if (-not $mcp.mcpServers.PSObject.Properties.Match("kris-mcp").Count) {
+                $krisMcp = [PSCustomObject]@{
+                    command = "memory-bank\kris-mcp\.venv\Scripts\python.exe"
+                    args    = @("memory-bank\kris-mcp\kris-mcp.py")
+                }
+                $mcp.mcpServers | Add-Member -NotePropertyName "kris-mcp" -NotePropertyValue $krisMcp
+                $mcp | ConvertTo-Json -Depth 10 | Set-Content $mcpJsonPath
+                Write-Host "✓ kris-mcp registered in .mcp.json" -ForegroundColor Green
+            } else {
+                Write-Host "✓ kris-mcp already registered in .mcp.json" -ForegroundColor Green
+            }
+        } catch {
+            Write-Host "⚠ Could not update .mcp.json — add kris-mcp manually" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "  Skipping .mcp.json registration — venv not ready yet." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "⚠ kris-mcp download failed. You can install it later from kris-base/kris-mcp." -ForegroundColor Yellow
+}
+
 # Download KRIS Tasks (for multi-agent support)
 Write-Host ""
 Write-Host "Downloading KRIS Tasks..." -ForegroundColor Cyan
@@ -303,6 +400,14 @@ Write-Host "     • Create the complete KRIS structure"
 Write-Host ""
 Write-Host "  KRIS UI: After setup, start the visual doc browser with:" -ForegroundColor Green
 Write-Host "     cd memory-bank\kris-ui; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt; .venv\Scripts\python kris-ui.py" -ForegroundColor Cyan
+Write-Host ""
+if ($kris_mcp_venv_ok) {
+    Write-Host "  kris-mcp: Registered in .mcp.json — Claude Code will load it on next session." -ForegroundColor Green
+} else {
+    Write-Host "  kris-mcp: Venv not ready. After installing Python 3.10+, run:" -ForegroundColor Yellow
+    Write-Host "     cd memory-bank\kris-mcp; python -m venv .venv; .venv\Scripts\pip install -r requirements.txt" -ForegroundColor Cyan
+    Write-Host "     Then create .mcp.json at the repo root with the kris-mcp entry" -ForegroundColor Cyan
+}
 Write-Host ""
 Write-Host "  Remember: All choices can be changed later via prompting or" -ForegroundColor Green
 Write-Host "  by editing the generated files directly."

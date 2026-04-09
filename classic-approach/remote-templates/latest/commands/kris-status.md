@@ -5,6 +5,18 @@ Usage:
   /kris-status <ring> - Detailed per-file breakdown for specific ring
                         Valid rings: core, inner, middle, outer
 
+## EXECUTION PATH
+
+**Preferred (kris-mcp tools available):**
+- `kris_status()` → all rings, overview mode (pre-computed token counts, no file reads needed)
+- `kris_status(ring)` → single-ring status for detailed mode
+- `kris_list(ring)` → per-file breakdown with sizes and token estimates
+
+**Fallback (kris-mcp not available):**
+- Use `wc -w` via bash (current behaviour shown below)
+
+MCP path skips the manual word-count step entirely.
+
 ## Instructions
 
 **IMPORTANT**: Use terminal commands for metadata - DO NOT read entire files!

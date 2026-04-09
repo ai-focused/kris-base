@@ -5,7 +5,15 @@ Analyze token usage across KRIS memory rings and report status.
 - File system under:
   - CLAUDE.md
   - memory-bank/
-- Exclude: memory-bank/kris-ui/
+- Exclude: memory-bank/kris-ui/ and memory-bank/kris-mcp/ (kris-mcp handles exclusion automatically)
+
+# EXECUTION PATH
+Prefer kris-mcp tools when available:
+- `kris_status()` → all rings, pre-computed token counts (no file reads)
+- `kris_status(ring)` → single-ring status for detailed mode
+- `kris_list(ring)` → per-file breakdown with sizes and token estimates
+
+Fall back to `wc -w` via bash if kris-mcp is not registered.
 
 # REQUIREMENTS
 

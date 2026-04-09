@@ -1,5 +1,19 @@
 Archive completed work from Inner Ring to Outer Ring.
 
+## EXECUTION PATH
+
+**Preferred (kris-mcp tools available):**
+- `kris_read("inner/progress.md")` → find completed milestones and old tasks
+- Present candidates to user, get approval
+- `kris_write("outer/archive/YYYY-MM/name.md", archive_content)` → create archive file
+- `kris_move("inner/old-file.md", "outer/archive/YYYY-MM/old-file.md")` → when moving whole files
+- `kris_write("inner/progress.md", updated_with_archive_links)` → update progress with links
+
+**Fallback (kris-mcp not available):**
+- Read + Write + Edit tools (current behaviour)
+
+`kris_move` replaces the mkdir + cp + rm sequence with one atomic operation.
+
 ## Instructions
 
 1. **Read progress.md**

@@ -1,6 +1,6 @@
 # Welcome to {PROJECT_NAME}!
 
-> **We're using KRIS** (Knowledge Rings Information System) v3.3
+> **We're using KRIS** (Knowledge Rings Information System) v3.6
 > Type `/kris` for commands | `/kris-status` for ring health
 
 **Logo**:
@@ -205,6 +205,17 @@ tokens = words x 1.3 (do this in your response, not bash)
 
 KRIS commands are also available as agent-agnostic task specs in `.kris/tasks/` for use with Codex, Cursor, Copilot, and other AI tools. See [AGENTS.md](AGENTS.md) for the task system.
 
+### kris-mcp (MCP Server)
+
+KRIS ships with an MCP server at `memory-bank/kris-mcp/` that exposes ring operations (`kris_status`, `kris_read`, `kris_write`, `kris_search`, etc.) and WirePulse coordination tools to Claude Code and other MCP-aware agents. It is registered in `.mcp.json` at the repo root by the installer. Requires Python 3.10+.
+
+If missing, reinstall with:
+```bash
+mkdir -p memory-bank/kris-mcp && curl -fsSL https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-mcp/kris-mcp.py -o memory-bank/kris-mcp/kris-mcp.py && curl -fsSL https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-mcp/requirements.txt -o memory-bank/kris-mcp/requirements.txt && cd memory-bank/kris-mcp && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+```
+
+See [AGENTS.md](AGENTS.md#kris-mcp) for the full tool list.
+
 ---
 
 ## KRIS Memory Bank UI
@@ -310,10 +321,10 @@ Run `/kris-status` to check usage.
 │  KRIS - Knowledge Rings Information System                   │
 │  Created by: Alexandru Negrila (alex@scaledagile.pro)        │
 │  Documentation: https://github.com/ai-focused/kris-base      │
-│  KRIS Version: 3.3                                           │
+│  KRIS Version: 3.6                                           │
 ╰──────────────────────────────────────────────────────────────╯
 
 ---
 
 *Last Updated: {CURRENT_DATE}*
-*KRIS Version: 3.3*
+*KRIS Version: 3.6*

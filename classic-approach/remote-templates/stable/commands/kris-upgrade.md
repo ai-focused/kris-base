@@ -5,6 +5,12 @@ Usage:
   /kris-upgrade latest   - Upgrade to latest (bleeding edge)
   /kris-upgrade [version] - Revert to a specific version (e.g., 2.2)
 
+## EXECUTION PATH
+
+Not MCP-powered. `/kris-upgrade` operates on CLAUDE.md and downloads files from GitHub — both outside kris-mcp's `memory-bank/` scope. Uses direct file I/O (Read/Edit/Write tools) and curl for downloads as it does today.
+
+kris-mcp itself is downloaded and registered by this command (see step 2.5b), but the upgrade process does not depend on kris-mcp being available.
+
 ## Instructions
 
 ### UPGRADE PROCESS — TWO-STEP BOOTSTRAP
@@ -142,6 +148,61 @@ If `memory-bank/kris-ui/.venv` exists, update dependencies:
 cd memory-bank/kris-ui && .venv/bin/pip install -q -r requirements.txt
 ```
 
+#### 2.5b Download kris-mcp
+
+```bash
+mkdir -p memory-bank/kris-mcp
+```
+
+Download from `https://raw.githubusercontent.com/ai-focused/kris-base/main/kris-mcp/`:
+- `kris-mcp.py`
+- `requirements.txt`
+
+**Find a Python 3.10+ interpreter** — kris-mcp requires it. Try in order: `python3.13`, `python3.12`, `python3.11`, `python3.10`, `python3`. For each candidate, run:
+```bash
+<candidate> -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'
+```
+Accept the first one that reports `3.10` or higher. If none qualify, **skip the venv creation and skip the settings.json registration**. Print a clear warning and instructions for the user to install Python 3.10+ and re-run `/kris-upgrade` or create the venv manually. Do NOT write a broken settings.json entry — Claude Code would fail to spawn a non-existent interpreter on every session.
+
+**Create or update the venv** (call the interpreter found above `$PY`):
+
+If `memory-bank/kris-mcp/.venv` does NOT exist:
+```bash
+cd memory-bank/kris-mcp && $PY -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -r requirements.txt
+```
+
+If `memory-bank/kris-mcp/.venv` exists (upgrading an existing install):
+```bash
+cd memory-bank/kris-mcp && .venv/bin/pip install -q -r requirements.txt
+```
+
+**On Windows**: use `.venv\Scripts\python.exe` and `.venv\Scripts\pip.exe` instead of `.venv/bin/python3` and `.venv/bin/pip`. Detect OS via CLAUDE.md "Shell Environment" section or by checking if `memory-bank/kris-mcp/.venv/bin` exists (Unix) vs `memory-bank/kris-mcp/.venv/Scripts` (Windows).
+
+**Verify the venv works** — run `memory-bank/kris-mcp/.venv/bin/python3 -c "import mcp, httpx"` (or `.venv\Scripts\python.exe` on Windows). If this fails, do NOT register in `.mcp.json` — warn the user instead.
+
+**Register kris-mcp in `.mcp.json` at the repo root (idempotent — ONLY if the venv import check passed):**
+
+Claude Code reads project-scoped MCP servers from `.mcp.json` at the repo root — NOT from `.claude/settings.json` (that file is for permissions, hooks, statusLine). Using the wrong file silently leaves kris-mcp unloaded.
+
+Read `.mcp.json`. If the file does not exist, create it as `{}`. If `mcpServers.kris-mcp` does NOT exist, add it:
+
+```json
+{
+  "mcpServers": {
+    "kris-mcp": {
+      "command": "memory-bank/kris-mcp/.venv/bin/python3",
+      "args": ["memory-bank/kris-mcp/kris-mcp.py"]
+    }
+  }
+}
+```
+
+**On Windows**, use `memory-bank\\kris-mcp\\.venv\\Scripts\\python.exe` as the command.
+
+Preserve any other existing keys in `.mcp.json` — do NOT replace the file, merge `mcpServers.kris-mcp` into it.
+
+**Migration from early-v3.6 builds**: if `.claude/settings.json` contains a `mcpServers.kris-mcp` entry, move it to `.mcp.json` and remove it from `.claude/settings.json` (it was never read there). If `.claude/settings.json` becomes `{}` after removal, leave the empty object — do not delete the file (other tools may use it).
+
 #### 2.4 Smart CLAUDE.md merge (AI-assisted, NOT mechanical replacement)
 
 ⚠️ **CRITICAL: Do NOT replace CLAUDE.md with the new template.** The user's CLAUDE.md has evolved and contains project-specific content that must be preserved.
@@ -218,8 +279,10 @@ rm -f .kris-temp-template.md
 │    • Commands: 7 files in .claude/commands/                   │
 │    • Tasks: 7 files in .kris/tasks/                           │
 │    • KRIS UI: files in memory-bank/kris-ui/                   │
+│    • kris-mcp: files in memory-bank/kris-mcp/                 │
 │    • CLAUDE.md: [N] sections added, [M] updated              │
 │    • AGENTS.md: [created|updated|unchanged]                  │
+│    • .claude/settings.json: [kris-mcp added|already set]     │
 │                                                              │
 │  Preserved:                                                  │
 │    • [N] customized sections unchanged                       │

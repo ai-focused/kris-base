@@ -6,6 +6,12 @@ Search a specific KRIS ring for information matching a topic.
 - Argument 2: search topic (string)
 - File system: `memory-bank/`, `CLAUDE.md`
 
+# EXECUTION PATH
+Prefer kris-mcp tools when available:
+- `kris_search(ring, pattern)` → matches with file, line number, and surrounding context (capped at 50)
+
+Fall back to grep via bash if kris-mcp is not registered. Output format identical.
+
 # REQUIREMENTS
 
 ## 1. Parse Arguments

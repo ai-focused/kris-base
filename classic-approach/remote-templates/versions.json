@@ -1,25 +1,26 @@
 {
   "current": {
-    "stable": "3.5",
-    "latest": "3.5"
+    "stable": "3.6",
+    "latest": "3.6"
   },
   "versions": {
-    "3.5": {
-      "date": "2026-04-05",
+    "3.6": {
+      "date": "2026-04-09",
       "channel": ["stable", "latest"],
+      "parent": "3.5",
       "changelog": [
-        "WirePulse — collaboration system with physics-based naming (circuits, particles, protons, electrons, supercharges)",
-        "WirePulse UI — sidebar layout with circuit switcher, Tasks/Particles nav, particle presence list",
-        "Particle indicators: p⁺ (proton/human) and e⁻ (electron/AI) with online dots and ⚡ supercharge tags",
-        "Task management: create, claim, status transitions, messages, status filters",
-        "SSE real-time notifications with toast popups and gold nav glow on unread events",
-        "Circuit management: create circuit, join via invite code (KRIS-XXXX-XXXX), multi-circuit support",
-        "Invite system: generate codes, copy, revoke, role selection (proton/electron)",
-        "Unified About modal with tabs (About + Shortcuts), keyboard nav (v, ?, arrows), version check with 'Check again'",
-        "Proxy Blueprint (wirepulse.py): all /api/wp/* routes, tokens stay server-side",
-        "Forgiving interactive template parsers — accept both `- **Key**: Value` and `**Key**: Value` formats",
-        "Format enforcement in kris-update specs and CLAUDE.md.base",
-        "File line count in KRIS UI right-pane File Info metadata"
+        "kris-mcp — MCP server for ring operations (kris_status/list/read/write/append/search/move) and WirePulse coordination (wp_status/tasks/task_create/task_claim/task_status/messages_list/message_post/claim_file/claim_release/invite_create)",
+        "Ring tools always available; WirePulse tools load conditionally on .kris/sync.json with valid token",
+        "Writes scoped to memory-bank/ only — CLAUDE.md and AGENTS.md cannot be modified via MCP",
+        "Installer (kris-install.sh + .ps1): downloads kris-mcp, auto-detects Python 3.10+ (tries python3.13 → python3.10 → python3), creates venv, installs deps, then idempotently registers in .mcp.json at the repo root with OS-aware path. Skips .mcp.json registration if venv creation fails — prevents broken Claude Code sessions.",
+        "kris-upgrade: step 2.5b (command) + section 9 (task) auto-create the kris-mcp venv if missing, update deps if present, verify `import mcp, httpx` before registering .mcp.json, and merge idempotently with existing mcpServers entries. Migrates any stale mcpServers entry from .claude/settings.json (early-v3.6 builds) to .mcp.json.",
+        "CRITICAL FIX: Claude Code reads project-scoped MCP servers from .mcp.json at the repo root — NOT from .claude/settings.json. Earlier v3.6 builds wrote to the wrong file and kris-mcp was silently unloaded. This version fixes the installer, upgrader, and templates to use the correct location.",
+        "AGENTS.md.base: new kris-mcp section with stdio config and full tool list",
+        "CLAUDE.md.base: minimal kris-mcp reference pointing to AGENTS.md",
+        "All 7 commands and 7 tasks gain an EXECUTION PATH section — prefer kris-mcp tools when available, fall back to direct file I/O (Read/Edit/Write/grep/wc) otherwise. Zero regression for users without kris-mcp.",
+        "Scaffolder bumped from v3.3 to v3.6 — new installs get the correct version header and commands list",
+        "wp-browse.py: read-only CLI DB browser for WirePulse server (Fly VM SSH) — overview, circuit, tasks, events commands",
+        "Backward compatible: commands fall back to direct file I/O when kris-mcp is absent or Python 3.10+ is unavailable"
       ],
       "files": {
         "base": "CLAUDE.md.base",
@@ -75,8 +76,32 @@
           "kris-ui/wirepulse.py",
           "kris-ui/static/css/kris-wirepulse.css",
           "kris-ui/static/js/kris-wirepulse.js"
+        ],
+        "kris_mcp": [
+          "kris-mcp/kris-mcp.py",
+          "kris-mcp/requirements.txt"
         ]
       }
+    },
+    "3.5": {
+      "date": "2026-04-05",
+      "channel": ["archived"],
+      "changelog": [
+        "WirePulse — collaboration system with physics-based naming (circuits, particles, protons, electrons, supercharges)",
+        "WirePulse UI — sidebar layout with circuit switcher, Tasks/Particles nav, particle presence list",
+        "Particle indicators: p⁺ (proton/human) and e⁻ (electron/AI) with online dots and ⚡ supercharge tags",
+        "Task management: create, claim, status transitions, messages, status filters",
+        "SSE real-time notifications with toast popups and gold nav glow on unread events",
+        "Circuit management: create circuit, join via invite code (KRIS-XXXX-XXXX), multi-circuit support",
+        "Invite system: generate codes, copy, revoke, role selection (proton/electron)",
+        "Unified About modal with tabs (About + Shortcuts), keyboard nav (v, ?, arrows), version check with 'Check again'",
+        "Proxy Blueprint (wirepulse.py): all /api/wp/* routes, tokens stay server-side",
+        "Forgiving interactive template parsers — accept both `- **Key**: Value` and `**Key**: Value` formats",
+        "Format enforcement in kris-update specs and CLAUDE.md.base",
+        "File line count in KRIS UI right-pane File Info metadata"
+      ],
+      "deprecated": true,
+      "upgrade_to": "3.6"
     },
     "3.4": {
       "date": "2026-04-04",
@@ -85,7 +110,7 @@
         "Forgiving parsers, format enforcement, file line counts"
       ],
       "deprecated": true,
-      "upgrade_to": "3.5"
+      "upgrade_to": "3.6"
     },
     "3.3": {
       "date": "2026-04-02",
@@ -161,7 +186,7 @@
         ]
       },
       "deprecated": true,
-      "upgrade_to": "3.5"
+      "upgrade_to": "3.6"
     },
     "3.2": {
       "date": "2026-03-30",
@@ -173,7 +198,7 @@
         "Keyboard folder navigation"
       ],
       "deprecated": true,
-      "upgrade_to": "3.5"
+      "upgrade_to": "3.6"
     },
     "3.1": {
       "date": "2026-03-29",
@@ -189,7 +214,7 @@
         "/api/project-logo route serves project logo with path validation"
       ],
       "deprecated": true,
-      "upgrade_to": "3.5"
+      "upgrade_to": "3.6"
     },
     "3.0": {
       "date": "2026-03-29",

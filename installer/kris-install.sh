@@ -211,6 +211,95 @@ else
     echo -e "${YELLOW}⚠ Some KRIS UI files failed to download. You can re-run the installer later.${NC}"
 fi
 
+# Download kris-mcp (MCP server for ring operations + WirePulse)
+echo ""
+echo -e "${CYAN}Downloading kris-mcp...${NC}"
+
+KRIS_MCP_DIR="memory-bank/kris-mcp"
+KRIS_MCP_FILES=("kris-mcp.py" "requirements.txt")
+
+mkdir -p "$KRIS_MCP_DIR"
+
+kris_mcp_ok=true
+for file in "${KRIS_MCP_FILES[@]}"; do
+    url="${GITHUB_RAW_ROOT}/kris-mcp/${file}"
+    dest="${KRIS_MCP_DIR}/${file}"
+    if command -v curl &> /dev/null; then
+        curl -fsSL "$url" -o "$dest" 2>/dev/null || { echo -e "${RED}  ✗ Failed: ${file}${NC}"; kris_mcp_ok=false; }
+    elif command -v wget &> /dev/null; then
+        wget -q "$url" -O "$dest" 2>/dev/null || { echo -e "${RED}  ✗ Failed: ${file}${NC}"; kris_mcp_ok=false; }
+    fi
+done
+
+if $kris_mcp_ok; then
+    echo -e "${GREEN}✓ kris-mcp downloaded (${#KRIS_MCP_FILES[@]} files)${NC}"
+
+    # Try to find a Python 3.10+ interpreter — kris-mcp needs it.
+    kris_mcp_py=""
+    for candidate in python3.13 python3.12 python3.11 python3.10 python3; do
+        if command -v "$candidate" &> /dev/null; then
+            ver=$("$candidate" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null)
+            major=$(echo "$ver" | cut -d. -f1)
+            minor=$(echo "$ver" | cut -d. -f2)
+            if [ "$major" = "3" ] && [ "$minor" -ge 10 ] 2>/dev/null; then
+                kris_mcp_py=$(command -v "$candidate")
+                break
+            fi
+        fi
+    done
+
+    kris_mcp_venv_ok=false
+    if [ -n "$kris_mcp_py" ]; then
+        echo -e "${CYAN}  Creating kris-mcp venv (${kris_mcp_py})...${NC}"
+        if (cd "$KRIS_MCP_DIR" && "$kris_mcp_py" -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -r requirements.txt) 2>/dev/null; then
+            echo -e "${GREEN}✓ kris-mcp venv ready (Python $("$kris_mcp_py" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")'))${NC}"
+            kris_mcp_venv_ok=true
+        else
+            echo -e "${YELLOW}⚠ kris-mcp venv creation failed — install later with:${NC}"
+            echo -e "${YELLOW}    cd memory-bank/kris-mcp && ${kris_mcp_py} -m venv .venv && .venv/bin/pip install -r requirements.txt${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠ Python 3.10+ not found — kris-mcp needs it. After installing:${NC}"
+        echo -e "${YELLOW}    cd memory-bank/kris-mcp && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt${NC}"
+    fi
+
+    # Register kris-mcp in .mcp.json (project root) ONLY if the venv is actually usable.
+    # Claude Code reads project-scoped MCP servers from .mcp.json at the repo root —
+    # NOT from .claude/settings.json (which is for permissions, hooks, statusLine).
+    if $kris_mcp_venv_ok; then
+        if command -v python3 &> /dev/null; then
+            python3 - <<'PYEOF' 2>/dev/null && echo -e "${GREEN}✓ kris-mcp registered in .mcp.json${NC}" || echo -e "${YELLOW}⚠ Could not update .mcp.json — add kris-mcp manually${NC}"
+import json, os
+path = ".mcp.json"
+data = {}
+if os.path.exists(path):
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
+servers = data.setdefault("mcpServers", {})
+if "kris-mcp" not in servers:
+    servers["kris-mcp"] = {
+        "command": "memory-bank/kris-mcp/.venv/bin/python3",
+        "args": ["memory-bank/kris-mcp/kris-mcp.py"],
+    }
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+PYEOF
+        else
+            echo -e "${YELLOW}⚠ python3 not found — skipping .mcp.json registration${NC}"
+        fi
+    else
+        echo -e "${YELLOW}  Skipping .mcp.json registration — venv not ready yet.${NC}"
+        echo -e "${YELLOW}  After installing Python 3.10+ and creating the venv, add this to .mcp.json at the repo root:${NC}"
+        echo -e "${YELLOW}    {\"mcpServers\": {\"kris-mcp\": {\"command\": \"memory-bank/kris-mcp/.venv/bin/python3\", \"args\": [\"memory-bank/kris-mcp/kris-mcp.py\"]}}}${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠ kris-mcp download failed. You can install it later from kris-base/kris-mcp.${NC}"
+fi
+
 # Download KRIS Tasks (for multi-agent support)
 echo ""
 echo -e "${CYAN}Downloading KRIS Tasks...${NC}"
@@ -320,6 +409,15 @@ echo -e "     • Create the complete KRIS structure"
 echo ""
 echo -e "  ${GREEN}KRIS UI:${NC} After setup, start the visual doc browser with:"
 echo -e "     ${CYAN}cd memory-bank/kris-ui && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python3 kris-ui.py${NC}"
+echo ""
+if $kris_mcp_venv_ok 2>/dev/null; then
+    echo -e "  ${GREEN}kris-mcp:${NC} Registered in .mcp.json — Claude Code will load it on next session."
+else
+    echo -e "  ${YELLOW}kris-mcp:${NC} Venv not ready. After installing Python 3.10+, run:"
+    echo -e "     ${CYAN}cd memory-bank/kris-mcp && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt${NC}"
+    echo -e "     Then create .mcp.json at the repo root with:"
+    echo -e "     ${CYAN}{\"mcpServers\": {\"kris-mcp\": {\"command\": \"memory-bank/kris-mcp/.venv/bin/python3\", \"args\": [\"memory-bank/kris-mcp/kris-mcp.py\"]}}}${NC}"
+fi
 echo ""
 echo -e "  ${GREEN}Remember:${NC} All choices can be changed later via prompting or"
 echo -e "  by editing the generated files directly."

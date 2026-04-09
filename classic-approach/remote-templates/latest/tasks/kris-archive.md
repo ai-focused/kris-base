@@ -6,6 +6,15 @@ Archive completed work from Inner Ring to Outer Ring.
 - `memory-bank/inner/activeContext.md`
 - Current date (for archive folder naming)
 
+# EXECUTION PATH
+Prefer kris-mcp tools when available:
+- `kris_read("inner/progress.md")` → find completed milestones and old tasks
+- `kris_write("outer/archive/YYYY-MM/name.md", archive_content)` → create archive file
+- `kris_move("inner/old-file.md", "outer/archive/YYYY-MM/old-file.md")` → full-file moves
+- `kris_write("inner/progress.md", updated_with_archive_links)` → update progress
+
+Fall back to Read + Write + Edit if kris-mcp is not registered. `kris_move` replaces the mkdir + cp + rm sequence.
+
 # REQUIREMENTS
 
 ## 1. Identify Archive Candidates

@@ -1,5 +1,19 @@
 Update activeContext.md with current session progress.
 
+## EXECUTION PATH
+
+**Preferred (kris-mcp tools available):**
+- `kris_read("inner/activeContext.md")` → read existing state
+- `kris_read("inner/progress.md")` → read existing progress
+- Extract session info from conversation history
+- `kris_write("inner/activeContext.md", updated_content)` → replace with updated version
+- `kris_append("inner/progress.md", new_completion_rows)` → add completion history entries without rewriting the full file
+
+**Fallback (kris-mcp not available):**
+- Use Read + Edit tools on the files directly (current behaviour)
+
+`kris_append` is the right primitive for log-style additions — it avoids rewriting the full file for incremental completion history entries.
+
 ## Instructions
 
 1. **Review conversation history**

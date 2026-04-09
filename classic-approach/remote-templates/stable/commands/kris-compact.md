@@ -1,6 +1,20 @@
 Optimize ring content and suggest what to archive.
 
-**NOTE**: Always exclude `memory-bank/kris-ui/` from analysis — it contains the KRIS UI app, not ring documentation.
+**NOTE**: Always exclude `memory-bank/kris-ui/` and `memory-bank/kris-mcp/` from analysis — they contain the KRIS UI app and MCP server, not ring documentation. (kris-mcp applies this exclusion automatically.)
+
+## EXECUTION PATH
+
+**Preferred (kris-mcp tools available):**
+- `kris_status()` → identify over-budget rings without reading any files
+- `kris_list(ring)` → enumerate files for per-file analysis
+- `kris_read(file)` → read ONLY the candidate files for compaction (not all files)
+- Present findings to user, get approval
+- `kris_write(file, compacted_content)` → apply approved changes
+
+**Fallback (kris-mcp not available):**
+- Word counts via bash + Read + Edit tools (current behaviour)
+
+MCP path eliminates the scan-everything cost — only flagged files are read.
 
 ## Instructions
 

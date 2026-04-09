@@ -1,12 +1,21 @@
 # TASK
 Analyze ring content for optimization opportunities and execute approved actions.
 
-**NOTE**: Exclude `memory-bank/kris-ui/` from all analysis.
+**NOTE**: Exclude `memory-bank/kris-ui/` and `memory-bank/kris-mcp/` from all analysis. kris-mcp handles these exclusions automatically.
 
 # INPUTS
-- All `*.md` files in `memory-bank/` (excluding `kris-ui/`)
+- All `*.md` files in `memory-bank/` (excluding `kris-ui/` and `kris-mcp/`)
 - `CLAUDE.md`
 - Token budgets: Core 15k, Inner 30k, Middle 50k/file, Outer unlimited
+
+# EXECUTION PATH
+Prefer kris-mcp tools when available:
+- `kris_status()` → identify over-budget rings without reading any files
+- `kris_list(ring)` → enumerate files for per-file analysis
+- `kris_read(file)` → read ONLY the candidates flagged for compaction
+- `kris_write(file, compacted_content)` → apply approved compactions
+
+Fall back to wc + Read + Edit if kris-mcp is not registered. MCP path only reads flagged files, not all files.
 
 # REQUIREMENTS
 

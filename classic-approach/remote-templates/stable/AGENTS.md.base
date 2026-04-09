@@ -80,6 +80,43 @@ See [kris-ui.md](memory-bank/kris-ui/kris-ui.md) for authoring rules and interac
 
 ---
 
+## kris-mcp
+
+MCP server for KRIS ring operations and WirePulse coordination. Ring tools are always available; WirePulse tools load only when `.kris/sync.json` contains a valid circuit token.
+
+### Registration
+
+For **Claude Code**: registered in `.mcp.json` at the repo root (created automatically by the KRIS installer):
+
+```json
+{
+  "mcpServers": {
+    "kris-mcp": {
+      "command": "memory-bank/kris-mcp/.venv/bin/python3",
+      "args": ["memory-bank/kris-mcp/kris-mcp.py"]
+    }
+  }
+}
+```
+
+On Windows, use `memory-bank\\kris-mcp\\.venv\\Scripts\\python.exe` as the command.
+
+For **other MCP-aware agents** (Codex, Cursor, Copilot, Windsurf), register with the same stdio command and args following your agent's MCP configuration convention.
+
+### Ring tools (always available)
+
+`kris_status`, `kris_list`, `kris_read`, `kris_write`, `kris_append`, `kris_search`, `kris_move`
+
+Writes are scoped to `memory-bank/` only — CLAUDE.md and AGENTS.md cannot be modified via MCP.
+
+### WirePulse tools (conditional on .kris/sync.json)
+
+`wp_status`, `wp_tasks`, `wp_task_create`, `wp_task_claim`, `wp_task_status`, `wp_messages_list`, `wp_message_post`, `wp_claim_file`, `wp_claim_release`, `wp_invite_create`
+
+Use `wp_status` as a heartbeat on long-running tasks (every 5 minutes) to stay marked online.
+
+---
+
 ## Constraints
 
 - Do not hallucinate file contents — read before referencing

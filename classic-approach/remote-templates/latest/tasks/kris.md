@@ -7,6 +7,14 @@ Display KRIS welcome banner, project status, KRIS UI status, and available tasks
 - `memory-bank/kris-ui/kris-ui.py` (check existence)
 - `memory-bank/kris-ui/.venv/` (check existence)
 
+# EXECUTION PATH
+Prefer kris-mcp tools when available:
+- `kris_status()` → ring overview
+- `kris_read("inner/activeContext.md")` → current focus, active tasks, blockers
+- `kris_read("inner/progress.md")` → milestone status
+
+Fall back to direct file reads if kris-mcp is not registered. Output format identical either way.
+
 # REQUIREMENTS
 
 ## 1. Display Banner

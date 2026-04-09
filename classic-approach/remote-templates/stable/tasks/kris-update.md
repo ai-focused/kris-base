@@ -6,6 +6,15 @@ Update memory-bank/inner/activeContext.md to reflect the current session state.
 - Existing file: memory-bank/inner/activeContext.md
 - Optional: memory-bank/inner/progress.md (if tasks completed)
 
+# EXECUTION PATH
+Prefer kris-mcp tools when available:
+- `kris_read("inner/activeContext.md")` → existing state
+- `kris_read("inner/progress.md")` → existing progress
+- `kris_write("inner/activeContext.md", updated_content)` → replace with updated version
+- `kris_append("inner/progress.md", new_completion_rows)` → add completion history without rewriting the file
+
+Fall back to Read + Edit tools if kris-mcp is not registered. `kris_append` is the right primitive for log-style additions — avoids rewriting the full file for incremental rows.
+
 # REQUIREMENTS
 You must:
 
